@@ -3,9 +3,10 @@ require dirname(__DIR__, 2) . "/includes/config.php";
 require_role('seller');
 
 // Hitung data statistik dashboard
-$revenue = (float)$pdo->query("SELECT COALESCE(SUM(total),0) FROM orders WHERE payment_status = 'paid'")->fetchColumn();
+$total_revenue = (float)$pdo->query("SELECT COALESCE(SUM(total),0) FROM orders")->fetchColumn();
+$paid_revenue = (float)$pdo->query("SELECT COALESCE(SUM(total),0) FROM orders WHERE payment_status = 'paid'")->fetchColumn();
 $purchase = (float)$pdo->query("SELECT COALESCE(SUM(total),0) FROM purchases")->fetchColumn();
-$profit = $revenue - $purchase;
+$profit = $paid_revenue - $purchase;
 
 // Hitung pesanan aktif (status belum selesai/dibatalkan)
 $active_orders = (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE status NOT IN ('completed', 'returned')")->fetchColumn();
@@ -199,9 +200,9 @@ $recent_purchases = $pdo->query("SELECT p.*, m.name, m.unit FROM purchases p JOI
         <div class="dash-card blue">
             <div>
                 <div class="dash-card-title">Total Pendapatan</div>
-                <div class="dash-card-value"><?=rupiah($revenue)?></div>
+                <div class="dash-card-value"><?=rupiah($total_revenue)?></div>
             </div>
-            <div class="dash-card-desc">Dari pesanan Lunas & Diproses</div>
+            <div class="dash-card-desc">Total nilai seluruh pesanan</div>
         </div>
 
         <div class="dash-card green">
@@ -209,7 +210,7 @@ $recent_purchases = $pdo->query("SELECT p.*, m.name, m.unit FROM purchases p JOI
                 <div class="dash-card-title">Laba Bersih</div>
                 <div class="dash-card-value"><?=rupiah($profit)?></div>
             </div>
-            <div class="dash-card-desc">Margin - (Pembelian Bahan Baku)</div>
+            <div class="dash-card-desc">Pendapatan lunas - pembelian bahan baku</div>
         </div>
 
         <div class="dash-card yellow">

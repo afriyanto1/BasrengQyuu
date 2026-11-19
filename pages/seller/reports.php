@@ -93,11 +93,18 @@ if ($orders) {
 
 // Hitung Statistik Kartu Atas (Berdasarkan filter tanggal yang dipilih)
 $stmt_rev = $pdo->prepare("
-    SELECT COALESCE(SUM(total), 0) FROM orders 
-    WHERE payment_status = 'paid' AND DATE(created_at) BETWEEN ? AND ?
+    SELECT COALESCE(SUM(total), 0) FROM orders
+    WHERE DATE(created_at) BETWEEN ? AND ?
 ");
 $stmt_rev->execute([$date_from, $date_to]);
 $total_revenue = (float)$stmt_rev->fetchColumn();
+
+$stmt_paid_rev = $pdo->prepare("
+    SELECT COALESCE(SUM(total), 0) FROM orders
+    WHERE payment_status = 'paid' AND DATE(created_at) BETWEEN ? AND ?
+");
+$stmt_paid_rev->execute([$date_from, $date_to]);
+$paid_revenue = (float)$stmt_paid_rev->fetchColumn();
 
 $stmt_exp = $pdo->prepare("
     SELECT COALESCE(SUM(total), 0) FROM purchases 
@@ -106,7 +113,7 @@ $stmt_exp = $pdo->prepare("
 $stmt_exp->execute([$date_from, $date_to]);
 $total_expense = (float)$stmt_exp->fetchColumn();
 
-$net_profit = $total_revenue - $total_expense;
+$net_profit = $paid_revenue - $total_expense;
 // Pendapatan bersih (bisa disesuaikan, misal total pendapatan dikurangi operasional atau sama dengan laba bersih)
 $clean_revenue = $total_revenue; 
 
@@ -197,9 +204,9 @@ if ($export === 'xls') {
                         $items
                     ));
                     $is_paid = $o['payment_status'] === 'paid';
-                    $revenue = $is_paid ? (float) $o['total'] : 0.0;
-                    $allocated_expense = $is_paid && $total_revenue > 0
-                        ? $total_expense * (float) $o['total'] / $total_revenue
+                    $revenue = (float) $o['total'];
+                    $allocated_expense = $is_paid && $paid_revenue > 0
+                        ? $total_expense * (float) $o['total'] / $paid_revenue
                         : 0.0;
                     $profit = $is_paid ? (float) $o['total'] - $allocated_expense : 0.0;
                     $sum_qty += $total_qty;
@@ -631,15 +638,15 @@ if ($export === 'xls') {
                 <div class="dash-card-title">Total Pendapatan</div>
                 <div class="dash-card-value"><?= rupiah($total_revenue) ?></div>
             </div>
-            <div class="dash-card-desc">Akumulasi nilai pesanan lunas & diproses</div>
+            <div class="dash-card-desc">Total nilai seluruh pesanan pada rentang tanggal</div>
         </div>
 
         <div class="dash-card cyan">
             <div>
-                <div class="dash-card-title">Pendapatan Bersih</div>
+                <div class="dash-card-title">Pendapatan Kotor</div>
                 <div class="dash-card-value"><?= rupiah($clean_revenue) ?></div>
             </div>
-            <div class="dash-card-desc">Total Pendapatan Kotor</div>
+            <div class="dash-card-desc">Total Pendapatan pesanan lunas</div>
         </div>
 
         <div class="dash-card green">
@@ -647,7 +654,7 @@ if ($export === 'xls') {
                 <div class="dash-card-title">Laba Bersih</div>
                 <div class="dash-card-value"><?= rupiah($net_profit) ?></div>
             </div>
-            <div class="dash-card-desc">Total Pendapatan - Pembelian Bahan</div>
+            <div class="dash-card-desc">Pendapatan lunas - pembelian bahan</div>
         </div>
     </div>
 
@@ -689,8 +696,8 @@ if ($export === 'xls') {
                             $items
                         ));
                         $total_qty = array_sum(array_column($items, 'qty'));
-                        $order_profit = $is_paid && $total_revenue > 0
-                            ? (float) $o['total'] - ($total_expense * (float) $o['total'] / $total_revenue)
+                        $order_profit = $is_paid && $paid_revenue > 0
+                            ? (float) $o['total'] - ($total_expense * (float) $o['total'] / $paid_revenue)
                             : 0;
                         $report_total_qty += $total_qty;
                         $report_total_shipping += (float) $o['shipping_fee'];
