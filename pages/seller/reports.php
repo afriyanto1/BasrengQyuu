@@ -111,14 +111,14 @@ $stmt_exp = $pdo->prepare("
     WHERE DATE(purchased_at) BETWEEN ? AND ?
 ");
 $stmt_exp->execute([$date_from, $date_to]);
-$clean_revenue =  (float)$stmt_all->fetchColumn();
+$total_expense = (float)$stmt_exp->fetchColumn();
 
 $stmt_all = $pdo->prepare("
     SELECT COALESCE(SUM(total), 0) FROM orders
     WHERE payment_status = 'paid' AND DATE(created_at) BETWEEN ? AND ?
 ");
 $stmt_all->execute([$date_from, $date_to]);
-$total_expense = (float)$stmt_exp->fetchColumn();
+$clean_revenue =  (float)$stmt_all->fetchColumn();
 
 $net_profit = $paid_revenue - $total_expense;
 
