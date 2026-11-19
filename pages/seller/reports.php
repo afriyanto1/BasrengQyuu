@@ -101,7 +101,7 @@ $total_revenue = (float)$stmt_rev->fetchColumn();
 
 $stmt_paid_rev = $pdo->prepare("
     SELECT COALESCE(SUM(total), 0) FROM orders
-    WHERE payment_status = 'paid' AND DATE(created_at) BETWEEN ? AND ?
+    WHERE DATE(created_at) BETWEEN ? AND ?
 ");
 $stmt_paid_rev->execute([$date_from, $date_to]);
 $paid_revenue = (float)$stmt_paid_rev->fetchColumn();
@@ -111,11 +111,16 @@ $stmt_exp = $pdo->prepare("
     WHERE DATE(purchased_at) BETWEEN ? AND ?
 ");
 $stmt_exp->execute([$date_from, $date_to]);
+$clean_revenue =  (float)$stmt_all->fetchColumn();
+
+$stmt_all = $pdo->prepare("
+    SELECT COALESCE(SUM(total), 0) FROM orders
+    WHERE payment_status = 'paid' AND DATE(created_at) BETWEEN ? AND ?
+");
+$stmt_all->execute([$date_from, $date_to]);
 $total_expense = (float)$stmt_exp->fetchColumn();
 
 $net_profit = $paid_revenue - $total_expense;
-// Pendapatan bersih (bisa disesuaikan, misal total pendapatan dikurangi operasional atau sama dengan laba bersih)
-$clean_revenue = $total_revenue; 
 
 // Export laporan ke format XLS yang kompatibel dengan Excel
 $export = $_GET['export'] ?? '';
