@@ -120,7 +120,7 @@ $stmt_all = $pdo->prepare("
 $stmt_all->execute([$date_from, $date_to]);
 $clean_revenue =  (float)$stmt_all->fetchColumn();
 
-$net_profit = $paid_revenue - $total_expense;
+$net_profit = $clean_revenue - $total_expense;
 
 // Export laporan ke format XLS yang kompatibel dengan Excel
 $export = $_GET['export'] ?? '';
