@@ -275,12 +275,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 try {
                     $pdo->beginTransaction();
                     $old = $pdo->prepare(
-                        "SELECT id, order_code, buyer_id, payment_method, status, tracking_number, stock_deducted FROM orders WHERE id = ? FOR UPDATE"
+                        "SELECT id, order_code, buyer_id, payment_method, status, tracking_number, stock_deducted, shipping_area, shipping_fee FROM orders WHERE id = ? FOR UPDATE"
                     );
                     $old->execute([$id]);
                     $old_order = $old->fetch();
                     if (!$old_order) {
                         throw new RuntimeException("Pesanan tidak ditemukan.");
+                    }
+                    if (
+                        !in_array($old_order["shipping_area"], ["jabodetabek", "outside"], true) ||
+                        (float) $old_order["shipping_fee"] <= 0
+                    ) {
+                        throw new RuntimeException("Nomor resi hanya dapat diisi untuk pesanan dengan ongkir berbayar.");
                     }
 
                     $tracking_number_changed = $tracking_number !== (string) ($old_order["tracking_number"] ?? "");
@@ -765,12 +771,12 @@ $products = $pdo->query("SELECT id, name, price, stock FROM products WHERE activ
     <?php show_flash(); ?>
 
     <?php if ($action === "create"): ?>
-    <div style="max-width: 1050px; margin: 0 auto 20px auto; display: flex; justify-content: space-between; align-items: center; gap: 16px;">
+    <div class="seller-form-header" style="max-width: 1050px;">
         <div>
             <h1 style="margin: 0 0 4px 0;">Buat Pesanan</h1>
             <p class="muted" style="margin: 0;">Catat pesanan pelanggan yang belum menggunakan aplikasi.</p>
         </div>
-        <a href="orders.php" class="btn btn-outline" style="height: 38px; line-height: 36px; padding: 0 16px; border-radius: 8px; white-space: nowrap;">← Kembali</a>
+        <a href="orders.php" class="btn btn-outline seller-form-back">← Kembali</a>
     </div>
 
     <section class="card-filter" style="max-width: 1050px; margin: 0 auto;">
@@ -1042,38 +1048,36 @@ $products = $pdo->query("SELECT id, name, price, stock FROM products WHERE activ
                                     </div>
                                 </div>
                                 <button class="btn" type="submit" form="order-update-<?= (int) $o["id"] ?>">Simpan Perubahan</button>
-                                <div class="detail-shipping-grid">
-                                    <?php if (
-                                        in_array($o["shipping_area"], ["jabodetabek", "outside"], true) &&
-                                        (float) $o["shipping_fee"] > 0
-                                    ): ?>
+                                <?php if (
+                                    in_array($o["shipping_area"], ["jabodetabek", "outside"], true) &&
+                                    (float) $o["shipping_fee"] > 0
+                                ): ?>
+                                    <div class="detail-shipping-grid">
                                         <div class="detail-receipt-panel">
                                             <h4>Cetak Resi Pengiriman</h4>
                                             <a class="btn" href="order_receipt.php?id=<?= (int) $o["id"] ?>" target="_blank" rel="noopener">
                                                 Cetak Resi
                                             </a>
                                         </div>
-                                    <?php else: ?>
-                                        <div class="detail-shipping-spacer" aria-hidden="true"></div>
-                                    <?php endif; ?>
-                                    <div class="detail-receipt-panel">
-                                        <form method="post" class="detail-form">
-                                            <input type="hidden" name="csrf" value="<?= csrf() ?>">
-                                            <input type="hidden" name="id" value="<?= $o["id"] ?>">
-                                            <input type="hidden" name="action" value="update_tracking_number">
-                                            <label for="tracking-number-<?= (int) $o["id"] ?>">Nomor Resi Pengiriman</label>
-                                            <input
-                                                id="tracking-number-<?= (int) $o["id"] ?>"
-                                                type="text"
-                                                name="tracking_number"
-                                                maxlength="100"
-                                                value="<?= e($o["tracking_number"] ?? "") ?>"
-                                                placeholder="Masukkan nomor resi"
-                                            >
-                                            <button class="btn" type="submit">Simpan Nomor Resi</button>
-                                        </form>
+                                        <div class="detail-receipt-panel">
+                                            <form method="post" class="detail-form">
+                                                <input type="hidden" name="csrf" value="<?= csrf() ?>">
+                                                <input type="hidden" name="id" value="<?= $o["id"] ?>">
+                                                <input type="hidden" name="action" value="update_tracking_number">
+                                                <label for="tracking-number-<?= (int) $o["id"] ?>">Nomor Resi Pengiriman</label>
+                                                <input
+                                                    id="tracking-number-<?= (int) $o["id"] ?>"
+                                                    type="text"
+                                                    name="tracking_number"
+                                                    maxlength="100"
+                                                    value="<?= e($o["tracking_number"] ?? "") ?>"
+                                                    placeholder="Masukkan nomor resi"
+                                                >
+                                                <button class="btn" type="submit">Simpan Nomor Resi</button>
+                                            </form>
+                                        </div>
                                     </div>
-                                </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </td>

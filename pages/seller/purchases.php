@@ -244,12 +244,12 @@ $hist = $stmt_hist->fetchAll();
 
     <?php if ($action === 'create'): ?>
         <!-- ================= HALAMAN CATAT PEMBELIAN BARU ================= -->
-        <div style="max-width: 900px; margin: 0 auto 20px auto; display: flex; justify-content: space-between; align-items: center;">
+        <div class="seller-form-header" style="max-width: 900px;">
             <div>
                 <h1 style="margin: 0 0 4px 0;">Catat Pembelian Baru</h1>
                 <p class="muted" style="margin: 0;">Catat jumlah barang/bahan baku yang dibeli. Harga satuan mengacu pada master bahan baku.</p>
             </div>
-            <a href="purchases.php" class="btn btn-outline" style="height: 38px; line-height: 36px; padding: 0 16px; border-radius: 8px;">← Kembali</a>
+            <a href="purchases.php" class="btn btn-outline seller-form-back">← Kembali</a>
         </div>
 
         <div class="form-card">

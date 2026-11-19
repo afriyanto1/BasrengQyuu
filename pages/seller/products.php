@@ -179,12 +179,12 @@ if ($search !== '') {
 
     <?php if ($action === 'create'): ?>
         <!-- ================= HALAMAN TAMBAH PRODUK ================= -->
-        <div style="max-width: 1050px; margin: 0 auto 20px auto; display: flex; justify-content: space-between; align-items: center;">
+        <div class="seller-form-header" style="max-width: 1050px;">
             <div>
                 <h1 style="margin: 0 0 4px 0;">Tambah Produk Baru</h1>
                 <p class="muted" style="margin: 0;">Lengkapi informasi detail produk dan foto katalog.</p>
             </div>
-            <a href="products.php" class="btn btn-outline" style="height: 38px; line-height: 36px; padding: 0 16px; border-radius: 8px;">← Kembali</a>
+            <a href="products.php" class="btn btn-outline seller-form-back">← Kembali</a>
         </div>
 
         <div class="form-card">

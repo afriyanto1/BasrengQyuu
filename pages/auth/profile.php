@@ -149,6 +149,7 @@ $homeUrl = $account["role"] === "seller"
   <body class="register-page profile-page">
     <header class="profile-nav">
       <a class="brand" href="<?= e($homeUrl) ?>"><span class="brand-name"><span class="brand-basreng">Basreng</span><span class="brand-qyuu">Qyuu&nbsp;</span><span class="brand-store">Store</span></span></a>
+      <button class="mobile-toggle" type="button" aria-label="Buka navigasi" onclick="document.querySelector('nav').classList.toggle('show')">☰</button>
       <nav>
         <a href="<?= e($homeUrl) ?>">Kembali ke menu</a>
         <a href="<?= e(app_url('pages/auth/logout.php')) ?>" class="profile-logout">Logout</a>

@@ -238,12 +238,12 @@ $rows = $stmt->fetchAll();
 
     <?php if ($action === 'create'): ?>
         <!-- ================= HALAMAN TAMBAH BAHAN BAKU ================= -->
-        <div class="materials-page-header">
+        <div class="seller-form-header" style="max-width: 900px;">
             <div>
                 <h1 style="margin: 0 0 4px 0;">Tambah Bahan Baku Baru</h1>
                 <p class="muted" style="margin: 0;">Masukkan informasi bahan baku, satuan, dan estimasi harga per satuan.</p>
             </div>
-            <a href="materials.php" class="btn btn-outline materials-back-link">← Kembali</a>
+            <a href="materials.php" class="btn btn-outline seller-form-back">← Kembali</a>
         </div>
 
         <div class="form-card">
