@@ -99,13 +99,6 @@ $stmt_rev = $pdo->prepare("
 $stmt_rev->execute([$date_from, $date_to]);
 $total_revenue = (float)$stmt_rev->fetchColumn();
 
-$stmt_paid_rev = $pdo->prepare("
-    SELECT COALESCE(SUM(total), 0) FROM orders
-    WHERE DATE(created_at) BETWEEN ? AND ?
-");
-$stmt_paid_rev->execute([$date_from, $date_to]);
-$paid_revenue = (float)$stmt_paid_rev->fetchColumn();
-
 $stmt_exp = $pdo->prepare("
     SELECT COALESCE(SUM(total), 0) FROM purchases 
     WHERE DATE(purchased_at) BETWEEN ? AND ?
@@ -120,6 +113,7 @@ $stmt_all = $pdo->prepare("
 $stmt_all->execute([$date_from, $date_to]);
 $clean_revenue =  (float)$stmt_all->fetchColumn();
 
+$paid_revenue = $clean_revenue;
 $net_profit = $clean_revenue - $total_expense;
 
 // Export laporan ke format XLS yang kompatibel dengan Excel
