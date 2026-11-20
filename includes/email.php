@@ -65,7 +65,7 @@ function send_order_notification_email(
         $safe_name = htmlspecialchars($recipient_name, ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8");
         $accent_color = $accent_colors[$type];
         $logo_path = dirname(__DIR__) . DIRECTORY_SEPARATOR . "assets" .
-            DIRECTORY_SEPARATOR . "images" . DIRECTORY_SEPARATOR . "basrengqyuu-email-logo.jpeg";
+            DIRECTORY_SEPARATOR . "images" . DIRECTORY_SEPARATOR . "basrengqyuu-email-logo.png";
         $logo_data = is_file($logo_path) ? file_get_contents($logo_path) : false;
         if ($logo_data === false) {
             error_log("Logo email notifikasi pesanan gagal dibaca.");
@@ -114,9 +114,9 @@ function send_order_notification_email(
             $mailer->addStringEmbeddedImage(
                 $logo_data,
                 "basrengqyuu-email-logo",
-                "basrengqyuu-email-logo.jpeg",
+                "basrengqyuu-email-logo.png",
                 \PHPMailer\PHPMailer\PHPMailer::ENCODING_BASE64,
-                "image/jpeg"
+                "image/png"
             );
         }
         $mailer->send();
