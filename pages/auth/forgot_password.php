@@ -54,7 +54,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 if ($accountName === "") {
                     $accountName = "Pelanggan";
                 }
-                $logoData = file_get_contents(app_path("assets/images/basrengqyuu-email-logo.jpeg"));
+                $logoData = file_get_contents(app_path("assets/images/basrengqyuu-email-logo.png"));
                 if ($logoData === false) {
                     error_log("Logo email reset password gagal dibaca.");
                     $brandHtml = '<span style="font-family:\'Arial Black\',\'Arial Rounded MT Bold\',sans-serif;font-size:30px;font-weight:900;">BasrengQyuu Store</span>';
@@ -102,9 +102,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         $mail->addStringEmbeddedImage(
                             $logoData,
                             "basrengqyuu-email-logo",
-                            "basrengqyuu-email-logo.jpeg",
+                            "basrengqyuu-email-logo.png",
                             \PHPMailer\PHPMailer\PHPMailer::ENCODING_BASE64,
-                            "image/jpeg"
+                            "image/png"
                         );
                     }
                     $mail->send();
