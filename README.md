@@ -3,11 +3,11 @@
 Aplikasi MVP kasir/penjualan basreng dengan role seller dan buyer.
 
 ## Fitur
-- Login, registrasi pembeli, halaman profil untuk mengubah nama pengguna/email/alamat/password, dan reset password melalui tautan email; role penjual/pembeli terpisah.
+- Login, registrasi pembeli dengan username unik, halaman profil untuk mengubah nama/email/alamat/password, dan reset password melalui tautan email; role penjual/pembeli terpisah.
 - Dashboard pendapatan, pembelian bahan baku, estimasi laba.
 - CRUD sederhana produk (tambah/nonaktifkan), stok dan harga.
 - Pencatatan bahan baku dan pembelian bahan baku.
-- Katalog pembeli, checkout, riwayat pesanan.
+- Katalog pembeli dengan pilihan tambah ke keranjang atau beli langsung; keranjang untuk memilih produk dan jumlah; serta checkout yang menampilkan alamat, rincian produk, ongkir, dan metode pembayaran (COD hanya untuk wilayah bebas ongkir).
 - Ongkir otomatis berdasarkan alamat di akun pembeli: gratis untuk semua tujuan di Kecamatan Pasar Kemis, Sepatan, dan Rajeg, serta Kelurahan Jatiwaringin di Kecamatan Mauk; Rp25.000 untuk Jabodetabek; Rp50.000 untuk luar Jabodetabek.
 - Upload QR/barcode pembayaran penjual untuk ditampilkan saat checkout.
 - Status pembayaran dan status pesanan dikelola secara terpisah oleh penjual.
@@ -20,9 +20,9 @@ Aplikasi MVP kasir/penjualan basreng dengan role seller dan buyer.
 
 ## Struktur folder
 - `pages/auth/` menyimpan halaman login, registrasi, profil, dan logout.
-- `pages/buyer/` menyimpan halaman shop, checkout, pembayaran, dan pesanan pembeli.
+- `pages/buyer/` menyimpan halaman shop, keranjang, checkout, pembayaran, dan pesanan pembeli.
 - `pages/seller/` menyimpan halaman dashboard dan pengelolaan seller.
-- `pages/api/` menyimpan endpoint data wilayah.
+- `pages/api/` menyimpan endpoint data wilayah, pemeriksaan email/username, dan saran username.
 - `includes/` menyimpan konfigurasi bersama; `includes/partials/` menyimpan navigasi seller dan buyer.
 - `assets/css/` menyimpan stylesheet.
 - `database/` menyimpan skema dan migrasi.
@@ -57,7 +57,9 @@ Aplikasi MVP kasir/penjualan basreng dengan role seller dan buyer.
 
 Jangan masukkan kredensial SMTP asli ke kode aplikasi atau README, dan jangan membagikannya.
 
-Untuk database yang sudah berjalan, jalankan migrasi `database/migrations/003_order_shipping.sql`, `database/migrations/004_free_shipping_regions.sql`, `database/migrations/005_backfill_order_shipping.sql`, `database/migrations/006_split_payment_and_order_status.sql`, `database/migrations/007_password_reset_tokens.sql`, `database/migrations/008_add_order_tracking_number.sql`, `database/migrations/009_order_notifications.sql`, dan `database/migrations/010_order_refund_return_notifications.sql` masing-masing satu kali (lewati migrasi yang sudah diterapkan). Migrasi 005 juga menetapkan ongkir pesanan lama yang belum memiliki area. Migrasi 006 memisahkan status pembayaran dari status pesanan dan memetakan data status lama. Migrasi 007 menambahkan penyimpanan token reset password, migrasi 008 menambahkan nomor resi pengiriman, migrasi 009 menambahkan penyimpanan notifikasi pembeli, dan migrasi 010 menambahkan jenis notifikasi pengembalian dana dan pesanan dikembalikan. Email pembaruan dikirim saat pembayaran berubah menjadi lunas/dikembalikan atau status pesanan berubah menjadi proses pengiriman/selesai/dikembalikan, khusus pesanan QRIS dan transfer BCA. Mengisi nomor resi di detail pesanan otomatis mengubah status menjadi Proses Pengiriman. Ongkir pesanan baru dihitung saat checkout dari alamat wilayah pembeli di database; tidak perlu input jarak atau konfirmasi penjual sebelum pembayaran.
+Untuk database yang sudah berjalan, jalankan migrasi `database/migrations/003_order_shipping.sql`, `database/migrations/004_free_shipping_regions.sql`, `database/migrations/005_backfill_order_shipping.sql`, `database/migrations/006_split_payment_and_order_status.sql`, `database/migrations/007_password_reset_tokens.sql`, `database/migrations/008_add_order_tracking_number.sql`, `database/migrations/009_order_notifications.sql`, `database/migrations/010_order_refund_return_notifications.sql`, `database/migrations/011_login_rate_limits.sql`, `database/migrations/012_email_verification_buyer_details.sql`, dan `database/migrations/013_usernames_and_gender.sql` masing-masing satu kali (lewati migrasi yang sudah diterapkan). Migrasi 005 juga menetapkan ongkir pesanan lama yang belum memiliki area. Migrasi 006 memisahkan status pembayaran dari status pesanan dan memetakan data status lama. Migrasi 007 menambahkan penyimpanan token reset password, migrasi 008 menambahkan nomor resi pengiriman, migrasi 009 menambahkan penyimpanan notifikasi pembeli, migrasi 010 menambahkan jenis notifikasi pengembalian dana dan pesanan dikembalikan, migrasi 011 menambahkan rate limit login sebanyak 5 percobaan gagal per alamat IP dalam 15 menit, migrasi 012 menambahkan nomor telepon opsional, tanggal lahir, serta verifikasi email (akun yang sudah ada ditandai terverifikasi agar tetap dapat login), dan migrasi 013 menambahkan username unik serta kolom gender opsional. Email pembaruan dikirim saat pembayaran berubah menjadi lunas/dikembalikan atau status pesanan berubah menjadi proses pengiriman/selesai/dikembalikan, khusus pesanan QRIS dan transfer BCA. Mengisi nomor resi di detail pesanan otomatis mengubah status menjadi Proses Pengiriman. Ongkir pesanan baru dihitung saat checkout dari alamat wilayah pembeli di database; tidak perlu input jarak atau konfirmasi penjual sebelum pembayaran.
+
+Pendaftaran pembeli kini menyimpan tanggal lahir untuk promo, gender opsional, username unik yang disarankan aplikasi atau dibuat sendiri, nomor telepon opsional, dan mengirim tautan aktivasi email yang berlaku 24 jam. Akun baru baru dapat login setelah email diverifikasi; tautan aktivasi dapat diminta ulang dari halaman login.
 
 ## Akun penjual awal
 - Email: `admin@basreng.local`

@@ -212,7 +212,7 @@ if ($search !== '') {
 
                     <div class="form-group full">
                         <label>Deskripsi</label>
-                        <textarea name="description" rows="4" placeholder="Keterangan rasa, ukuran, atau detail produk..."></textarea>
+                        <textarea name="description" rows="4" placeholder="Keterangan rasa, ukuran, atau detail produk"></textarea>
                     </div>
                 </div>
 
@@ -237,7 +237,7 @@ if ($search !== '') {
         <div class="card-filter">
             <form method="get" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 260px;">
-                    <input type="text" name="q" value="<?=e($search)?>" placeholder="Cari nama produk..." style="margin-top: 0; height: 42px; width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                    <input type="text" name="q" value="<?=e($search)?>" placeholder="Cari nama produk" style="margin-top: 0; height: 42px; width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;">
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <button class="btn btn-primary" style="height: 42px; margin-top: 0; padding: 0 20px; border-radius: 8px; font-weight: 600;">Cari</button>
@@ -273,7 +273,7 @@ if ($search !== '') {
                         </td>
                         <td>
                             <strong style="font-size: 15px; color: #1e293b;"><?=e($p['name'])?></strong>
-                            <div style="font-size: 12px; color: #64748b; margin-top: 2px;"><?=e(substr($p['description'] ?? '', 0, 60))?>...</div>
+                            <div style="font-size: 12px; color: #64748b; margin-top: 2px;"><?=e(substr($p['description'] ?? '', 0, 60))?></div>
                         </td>
                         <td><strong><?=rupiah($p['price'])?></strong></td>
                         <td><span style="font-weight: 600; color: <?=$p['stock'] > 0 ? '#059669' : '#dc2626'?>;"><?=$p['stock']?></span></td>

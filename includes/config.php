@@ -5,7 +5,7 @@ session_start();
 $host = getenv("DB_HOST") ?: "dropship-db.ctq2e6428ybb.ap-southeast-2.rds.amazonaws.com";
 $db = getenv("DB_NAME") ?: "basreng_pos";
 $user = getenv("DB_USER") ?: "admin";
-$pass = getenv('DB_PASS') ?: 'PapiAriyasa04';
+$pass = getenv('DB_PASS') ?: ;
 $port = (int) (getenv("DB_PORT") ?: 3306);
 $sslCa = getenv("DB_SSL_CA");
 if ($sslCa === false || trim($sslCa) === "") {
@@ -26,6 +26,72 @@ try {
 } catch (PDOException $e) {
     http_response_code(500);
     exit("Koneksi database gagal. Periksa includes/config.php dan pastikan database sudah di-import.");
+}
+
+const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 5;
+const LOGIN_RATE_LIMIT_WINDOW_MINUTES = 15;
+
+function login_rate_limit_retry_after(PDO $pdo, string $ip): int
+{
+    $stmt = $pdo->prepare(
+        "SELECT attempts, GREATEST(
+            0,
+            TIMESTAMPDIFF(
+                SECOND,
+                UTC_TIMESTAMP(),
+                DATE_ADD(window_started_at, INTERVAL " . LOGIN_RATE_LIMIT_WINDOW_MINUTES . " MINUTE)
+            )
+        ) AS retry_after
+        FROM login_rate_limits
+        WHERE ip_hash = ?
+            AND window_started_at > DATE_SUB(
+                UTC_TIMESTAMP(),
+                INTERVAL " . LOGIN_RATE_LIMIT_WINDOW_MINUTES . " MINUTE
+            )
+        LIMIT 1"
+    );
+    $stmt->execute([hash("sha256", $ip)]);
+    $attempt = $stmt->fetch();
+
+    if (!$attempt || (int) $attempt["attempts"] < LOGIN_RATE_LIMIT_MAX_ATTEMPTS) {
+        return 0;
+    }
+
+    return max(1, (int) $attempt["retry_after"]);
+}
+
+function record_failed_login(PDO $pdo, string $ip): int
+{
+    $stmt = $pdo->prepare(
+        "INSERT INTO login_rate_limits (ip_hash, attempts, window_started_at)
+        VALUES (?, 1, UTC_TIMESTAMP())
+        ON DUPLICATE KEY UPDATE
+            attempts = IF(
+                window_started_at <= DATE_SUB(
+                    UTC_TIMESTAMP(),
+                    INTERVAL " . LOGIN_RATE_LIMIT_WINDOW_MINUTES . " MINUTE
+                ),
+                1,
+                attempts + 1
+            ),
+            window_started_at = IF(
+                window_started_at <= DATE_SUB(
+                    UTC_TIMESTAMP(),
+                    INTERVAL " . LOGIN_RATE_LIMIT_WINDOW_MINUTES . " MINUTE
+                ),
+                UTC_TIMESTAMP(),
+                window_started_at
+            )"
+    );
+    $stmt->execute([hash("sha256", $ip)]);
+
+    return login_rate_limit_retry_after($pdo, $ip);
+}
+
+function clear_login_rate_limit(PDO $pdo, string $ip): void
+{
+    $stmt = $pdo->prepare("DELETE FROM login_rate_limits WHERE ip_hash = ?");
+    $stmt->execute([hash("sha256", $ip)]);
 }
 
 if (!function_exists('e')) {

@@ -36,89 +36,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 throw $e;
             }
 
-            $serverName = $_SERVER["SERVER_NAME"] ?? "";
-            $isIpv6 = is_string($serverName) && filter_var($serverName, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6);
-            $isValidHost = is_string($serverName) &&
-                ($isIpv6 || preg_match('/^(?=.{1,253}$)[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?$/', $serverName));
-            if (!$isValidHost) {
+            $resetUrl = app_email_absolute_url(
+                "pages/auth/reset_password.php?token=" . urlencode($token)
+            );
+            if ($resetUrl === null) {
                 error_log("Permintaan reset password gagal: nama server tidak valid.");
             } else {
-                $scheme = (!empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off") ? "https" : "http";
-                $port = (int) ($_SERVER["SERVER_PORT"] ?? ($scheme === "https" ? 443 : 80));
-                $portSuffix = in_array($port, [80, 443], true) ? "" : ":" . $port;
-                $host = $isIpv6 ? "[" . $serverName . "]" : $serverName;
-                $origin = $scheme . "://" . $host . $portSuffix;
-                $resetUrl = $origin .
-                    app_url("pages/auth/reset_password.php?token=" . urlencode($token));
                 $accountName = trim((string) $account["name"]);
                 if ($accountName === "") {
                     $accountName = "Pelanggan";
                 }
-                $logoData = file_get_contents(app_path("assets/images/basrengqyuu-email-logo.png"));
-                if ($logoData === false) {
-                    error_log("Logo email reset password gagal dibaca.");
-                    $brandHtml = '<span style="font-family:\'Arial Black\',\'Arial Rounded MT Bold\',sans-serif;font-size:30px;font-weight:900;">BasrengQyuu Store</span>';
-                } else {
-                    $brandHtml = '<img src="cid:basrengqyuu-email-logo" width="200" alt="BasrengQyuu Store" style="display:block;width:100%;max-width:200px;height:auto;border:0;">';
-                }
-                $subject = "Reset password BasrengQyuu Store";
-                $plainBody = "Halo, " . $accountName . "!\n\n" .
-                    "Kami menerima permintaan untuk mengatur ulang password akun BasrengQyuu Store Anda.\n" .
-                    "Klik tautan berikut untuk membuat password baru. Tautan berlaku selama 1 jam:\n" .
-                    $resetUrl . "\n\n" .
-                    "Jika Anda tidak meminta reset password, abaikan email ini. Password Anda tidak akan berubah.";
-                $safeResetUrl = htmlspecialchars($resetUrl, ENT_QUOTES, "UTF-8");
-                $safeAccountName = htmlspecialchars($accountName, ENT_QUOTES, "UTF-8");
-                $htmlBody = '<!doctype html><html lang="id"><head><meta charset="utf-8"><style>@import url(\'https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap\');</style></head>' .
-                    '<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:\'Inter\',system-ui,-apple-system,sans-serif;color:#1f2937;">' .
-                    '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f3f4f6;">' .
-                    '<tr><td align="center" style="padding:32px 16px;">' .
-                    '<table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;background-color:#ffffff;border:1px solid #e5e7eb;border-radius:12px;">' .
-                    '<tr><td align="center" style="padding:32px 32px 20px;">' .
-                    $brandHtml .
-                    '</td></tr>' .
-                    '<tr><td style="padding:0 40px 32px;">' .
-                    '<h1 style="margin:0 0 32px;text-align:center;font-size:24px;line-height:1.3;color:#111827;">Reset password Anda</h1>' .
-                    '<p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Halo, ' . $safeAccountName . '!</p>' .
-                    '<p style="margin:0 0 24px;font-size:16px;line-height:1.6;">Kami menerima permintaan untuk mengatur ulang password akun BasrengQyuu Store Anda. Klik tombol di bawah untuk membuat password baru.</p>' .
-                    '<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center"><tr>' .
-                    '<td align="center" bgcolor="#f59e0b" style="border-radius:8px;">' .
-                    '<a href="' . $safeResetUrl . '" style="display:inline-block;padding:14px 28px;border:1px solid #f59e0b;border-radius:8px;color:#111827;font-size:16px;font-weight:bold;text-decoration:none;">Atur ulang password</a>' .
-                    '</td></tr></table>' .
-                    '<p style="margin:24px 0;font-size:14px;line-height:1.6;color:#4b5563;">Tombol di atas berlaku selama <strong>1 jam</strong>.</p>' .
-                    '<hr style="border:0;border-top:1px solid #e5e7eb;margin:0 0 20px;">' .
-                    '<p style="margin:0;font-size:13px;line-height:1.6;color:#6b7280;">Jika Anda tidak meminta reset password, abaikan email ini. Password Anda tidak akan berubah.</p>' .
-                    '</td></tr></table>' .
-                    '<p style="margin:20px 0 0;font-size:12px;line-height:1.5;color:#6b7280;">Email otomatis dari BasrengQyuu Store. Mohon tidak membalas email ini.</p>' .
-                    '</td></tr></table></body></html>';
-                try {
-                    $mail = create_configured_mailer();
-                    $mail->addAddress($email);
-                    $mail->Subject = $subject;
-                    $mail->isHTML(true);
-                    $mail->Body = $htmlBody;
-                    $mail->AltBody = $plainBody;
-                    if ($logoData !== false) {
-                        $mail->addStringEmbeddedImage(
-                            $logoData,
-                            "basrengqyuu-email-logo",
-                            "basrengqyuu-email-logo.png",
-                            \PHPMailer\PHPMailer\PHPMailer::ENCODING_BASE64,
-                            "image/png"
-                        );
-                    }
-                    $mail->send();
-                } catch (\PHPMailer\PHPMailer\Exception $e) {
-                    error_log(
-                        "Email reset password gagal dikirim untuk user ID " .
-                        (int) $account["id"] . ": " . $e->getMessage()
-                    );
-                } catch (RuntimeException $e) {
-                    error_log("Email reset password gagal dikirim: " . $e->getMessage());
-                }
+                send_branded_email(
+                    $email,
+                    $accountName,
+                    "Reset password BasrengQyuu Store",
+                    "Reset password Anda",
+                    "Kami menerima permintaan untuk mengatur ulang password akun BasrengQyuu Store Anda. Klik tombol di bawah untuk membuat password baru.",
+                    "Atur ulang password",
+                    $resetUrl,
+                    "Tautan ini berlaku selama 1 jam. Jika Anda tidak meminta reset password, abaikan email ini. Password Anda tidak akan berubah."
+                );
             }
+            $message = "Link reset password telah dikirim. Periksa inbox atau spam di email Anda.";
+        } else {
+            $error = "Pengguna tidak terdaftar. Silakan daftar terlebih dahulu.";
         }
-        $message = "Link reset password telah dikirim. Periksa inbox atau spam di email Anda.";
     }
 }
 ?><!doctype html>

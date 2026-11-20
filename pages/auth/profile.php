@@ -1,10 +1,12 @@
 <?php
 require dirname(__DIR__, 2) . "/includes/config.php";
+require dirname(__DIR__, 2) . "/includes/email.php";
 require_login();
 
 $accountId = (int) user()["id"];
 $query = $pdo->prepare(
-    "SELECT id, name, email, password, role, province, city, district, village, address
+    "SELECT id, name, username, email, phone, date_of_birth, gender, email_verified_at, password, role,
+            province, city, district, village, address
      FROM users WHERE id = ? LIMIT 1"
 );
 $query->execute([$accountId]);
@@ -15,12 +17,16 @@ if (!$account) {
 }
 
 $error = "";
-$section = is_string($_GET["section"] ?? null) && in_array($_GET["section"], ["address", "password"], true)
+$sections = ["profile", "address", "password"];
+$section = is_string($_GET["section"] ?? null) && in_array($_GET["section"], $sections, true)
     ? $_GET["section"]
-    : "address";
+    : "profile";
 $formValues = [
     "name" => $account["name"],
     "email" => $account["email"],
+    "phone" => $account["phone"] ?? "",
+    "date_of_birth" => $account["date_of_birth"] ?? "",
+    "gender" => $account["gender"] ?? "",
     "province" => $account["province"] ?? "",
     "city" => $account["city"] ?? "",
     "district" => $account["district"] ?? "",
@@ -31,7 +37,7 @@ $formValues = [
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     check_csrf();
     $postedSection = $_POST["section"] ?? "";
-    if (!is_string($postedSection) || !in_array($postedSection, ["address", "password"], true)) {
+    if (!is_string($postedSection) || !in_array($postedSection, $sections, true)) {
         $error = "Pilihan menu profil tidak valid.";
     } else {
         $section = $postedSection;
@@ -64,14 +70,141 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $error = "Password gagal diubah. Coba lagi beberapa saat lagi.";
             }
         }
+    } elseif ($section === "profile" && $error === "") {
+        $profileFieldsPosted = true;
+        foreach (["name", "email", "phone", "date_of_birth", "gender"] as $field) {
+            if (!isset($_POST[$field]) || !is_string($_POST[$field])) {
+                $profileFieldsPosted = false;
+            }
+            $postedValue = $_POST[$field] ?? "";
+            $formValues[$field] = is_string($postedValue) ? trim($postedValue) : "";
+        }
+        $birthDate = $formValues["date_of_birth"] === ""
+            ? null
+            : DateTimeImmutable::createFromFormat("!Y-m-d", $formValues["date_of_birth"]);
+        $birthDateErrors = DateTimeImmutable::getLastErrors();
+        $validBirthDate = $formValues["date_of_birth"] === "" || (
+            $birthDate !== false &&
+            $birthDate->format("Y-m-d") === $formValues["date_of_birth"] &&
+            ($birthDateErrors === false ||
+                ($birthDateErrors["warning_count"] === 0 && $birthDateErrors["error_count"] === 0)) &&
+            $birthDate <= new DateTimeImmutable("today")
+        );
+        $validGender = in_array($formValues["gender"], ["", "male", "female", "prefer_not_to_say"], true);
+
+        if (!$profileFieldsPosted) {
+            $error = "Data profil tidak lengkap. Muat ulang halaman sebelum menyimpan.";
+        } elseif (
+            $formValues["name"] === "" ||
+            strlen($formValues["name"]) > 120 ||
+            !filter_var($formValues["email"], FILTER_VALIDATE_EMAIL) ||
+            strlen($formValues["email"]) > 160 ||
+            strlen($formValues["phone"]) > 30 ||
+            ($formValues["phone"] !== "" &&
+                preg_match('/\A[0-9+().\-\s]+\z/u', $formValues["phone"]) !== 1) ||
+            !$validBirthDate ||
+            !$validGender
+        ) {
+            $error = "Periksa kembali nama, email, nomor telepon, tanggal lahir, dan gender Anda.";
+        } else {
+            $emailCheck = $pdo->prepare("SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1");
+            $emailCheck->execute([$formValues["email"], $accountId]);
+            if ($emailCheck->fetch()) {
+                $error = "Email sudah digunakan akun lain.";
+            } else {
+                $emailChanged = $formValues["email"] !== $account["email"];
+                $activationUrl = "";
+                $token = "";
+                if ($emailChanged) {
+                    $token = bin2hex(random_bytes(32));
+                    $generatedActivationUrl = app_email_absolute_url(
+                        "pages/auth/activate.php?token=" . urlencode($token)
+                    );
+                    if ($generatedActivationUrl === null) {
+                        $error = "Tautan verifikasi email tidak dapat dibuat. Profil belum disimpan.";
+                    } else {
+                        $activationUrl = $generatedActivationUrl;
+                    }
+                }
+
+                if ($error === "") {
+                    try {
+                        $pdo->beginTransaction();
+                        $update = $pdo->prepare(
+                            "UPDATE users
+                             SET name = ?, email = ?, phone = ?, date_of_birth = ?, gender = ?,
+                                 email_verified_at = ?
+                             WHERE id = ?"
+                        );
+                        $update->execute([
+                            $formValues["name"],
+                            $formValues["email"],
+                            $formValues["phone"] ?: null,
+                            $formValues["date_of_birth"] ?: null,
+                            $formValues["gender"] ?: null,
+                            $emailChanged ? null : $account["email_verified_at"],
+                            $accountId,
+                        ]);
+                        if ($emailChanged) {
+                            $pdo->prepare("DELETE FROM email_verification_tokens WHERE user_id = ?")
+                                ->execute([$accountId]);
+                            $insertToken = $pdo->prepare(
+                                "INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
+                                 VALUES (?, ?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL 24 HOUR))"
+                            );
+                            $insertToken->execute([$accountId, hash("sha256", $token)]);
+                        }
+                        $pdo->commit();
+
+                        $_SESSION["user"]["name"] = $formValues["name"];
+                        $_SESSION["user"]["email"] = $formValues["email"];
+                        if ($emailChanged) {
+                            if (!send_account_activation_email(
+                                $formValues["email"],
+                                $formValues["name"],
+                                $activationUrl
+                            )) {
+                                flash(
+                                    "Email berubah, tetapi tautan aktivasi gagal dikirim. Silakan kirim ulang dari halaman masuk.",
+                                    "danger"
+                                );
+                            } else {
+                                flash(
+                                    "Email berubah. Verifikasi alamat email baru sebelum masuk kembali.",
+                                    "success"
+                                );
+                            }
+                            unset($_SESSION["user"]);
+                            session_regenerate_id(true);
+                            header("Location: " . app_url("pages/auth/login.php"));
+                            exit();
+                        }
+
+                        flash("Data profil berhasil diperbarui.", "success");
+                        header("Location: " . app_url("pages/auth/profile.php?section=profile"));
+                        exit();
+                    } catch (Throwable $e) {
+                        if ($pdo->inTransaction()) {
+                            $pdo->rollBack();
+                        }
+                        if ($e instanceof PDOException && $e->getCode() === "23000") {
+                            $error = "Email sudah digunakan akun lain.";
+                        } else {
+                            error_log("Pembaruan profil gagal untuk user ID " . $accountId . ": " . $e->getMessage());
+                            $error = "Profil gagal diperbarui. Coba lagi beberapa saat lagi.";
+                        }
+                    }
+                }
+            }
+        }
     } elseif ($section === "address" && $error === "") {
         $addressFieldsPosted = true;
-        foreach (["province", "city", "district", "village"] as $field) {
+        foreach (["province", "city", "district", "village", "address"] as $field) {
             if (!isset($_POST[$field]) || !is_string($_POST[$field])) {
                 $addressFieldsPosted = false;
             }
         }
-        foreach ($formValues as $field => $value) {
+        foreach (["province", "city", "district", "village", "address"] as $field) {
             $postedValue = $_POST[$field] ?? "";
             $formValues[$field] = is_string($postedValue) ? trim($postedValue) : "";
         }
@@ -85,50 +218,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             static fn(string $field): bool => $formValues[$field] !== ""
         )) === count($addressFields);
 
-        if (
-            $formValues["name"] === "" ||
-            strlen($formValues["name"]) > 120 ||
-            !filter_var($formValues["email"], FILTER_VALIDATE_EMAIL) ||
-            strlen($formValues["email"]) > 160
-        ) {
-            $error = "Masukkan nama pengguna dan alamat email yang valid.";
-        } elseif (!$addressFieldsPosted) {
+        if (!$addressFieldsPosted) {
             $error = "Daftar wilayah belum siap. Muat ulang halaman sebelum menyimpan profil.";
         } elseif ($hasAddress && !$hasCompleteAddress) {
             $error = "Lengkapi semua bagian alamat, dari provinsi hingga alamat jalan.";
         } else {
-            $emailCheck = $pdo->prepare("SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1");
-            $emailCheck->execute([$formValues["email"], $accountId]);
-            if ($emailCheck->fetch()) {
-                $error = "Email sudah digunakan akun lain.";
-            } else {
-                try {
-                    $update = $pdo->prepare(
-                        "UPDATE users SET name = ?, email = ?, province = ?, city = ?, district = ?, village = ?, address = ? WHERE id = ?"
-                    );
-                    $update->execute([
-                        $formValues["name"],
-                        $formValues["email"],
-                        $formValues["province"] ?: null,
-                        $formValues["city"] ?: null,
-                        $formValues["district"] ?: null,
-                        $formValues["village"] ?: null,
-                        $formValues["address"] ?: null,
-                        $accountId,
-                    ]);
-                    $_SESSION["user"]["name"] = $formValues["name"];
-                    $_SESSION["user"]["email"] = $formValues["email"];
-                    flash("Profil berhasil diperbarui.", "success");
-                    header("Location: " . app_url("pages/auth/profile.php?section=address"));
-                    exit();
-                } catch (PDOException $e) {
-                    if ($e->getCode() === "23000") {
-                        $error = "Email sudah digunakan akun lain.";
-                    } else {
-                        error_log("Pembaruan profil gagal untuk user ID " . $accountId . ": " . $e->getMessage());
-                        $error = "Profil gagal diperbarui. Coba lagi beberapa saat lagi.";
-                    }
-                }
+            try {
+                $update = $pdo->prepare(
+                    "UPDATE users
+                     SET province = ?, city = ?, district = ?, village = ?, address = ?
+                     WHERE id = ?"
+                );
+                $update->execute([
+                    $formValues["province"] ?: null,
+                    $formValues["city"] ?: null,
+                    $formValues["district"] ?: null,
+                    $formValues["village"] ?: null,
+                    $formValues["address"] ?: null,
+                    $accountId,
+                ]);
+                flash("Alamat berhasil diperbarui.", "success");
+                header("Location: " . app_url("pages/auth/profile.php?section=address"));
+                exit();
+            } catch (PDOException $e) {
+                error_log("Pembaruan alamat gagal untuk user ID " . $accountId . ": " . $e->getMessage());
+                $error = "Alamat gagal diperbarui. Coba lagi beberapa saat lagi.";
             }
         }
     }
@@ -137,88 +251,113 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 $homeUrl = $account["role"] === "seller"
     ? app_url("pages/seller/seller.php")
     : app_url("pages/buyer/shop.php");
+$sectionTitles = [
+    "profile" => "Data profil",
+    "address" => "Ubah alamat",
+    "password" => "Ganti password",
+];
 ?><!doctype html>
 <html lang="id">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title><?= $section === "password" ? "Ganti Password" : "Ubah Alamat" ?> - BasrengQyuu Store</title>
+    <title><?= e($sectionTitles[$section]) ?> - BasrengQyuu Store</title>
     <link rel="icon" type="image/svg+xml" href="<?= e(app_favicon_url()) ?>">
     <link rel="stylesheet" href="<?= e(app_url('assets/css/style.css')) ?>?v=<?= (int) filemtime(app_path('assets/css/style.css')) ?>">
   </head>
-  <body class="register-page profile-page">
-    <header class="profile-nav">
-      <a class="brand" href="<?= e($homeUrl) ?>"><span class="brand-name"><span class="brand-basreng">Basreng</span><span class="brand-qyuu">Qyuu&nbsp;</span><span class="brand-store">Store</span></span></a>
-      <button class="mobile-toggle" type="button" aria-label="Buka navigasi" onclick="document.querySelector('nav').classList.toggle('show')">☰</button>
-      <nav>
-        <a href="<?= e($homeUrl) ?>">Kembali ke menu</a>
-        <a href="<?= e(app_url('pages/auth/logout.php')) ?>" class="profile-logout">Logout</a>
-      </nav>
-    </header>
-
-    <main class="register-card">
-      <header class="register-header">
-        <span class="register-eyebrow">PENGATURAN AKUN</span>
-        <h1><?= $section === "password" ? "Ganti Password" : "Ubah Alamat" ?></h1>
-        <p><?= $section === "password" ? "Gunakan password saat ini untuk mengamankan perubahan." : "Perbarui informasi akun dan alamat pengiriman Anda." ?></p>
+  <body class="profile-page">
+    <?php if ($account["role"] === "buyer"): ?>
+      <?php include dirname(__DIR__, 2) . "/includes/partials/buyer_nav.php"; ?>
+    <?php else: ?>
+      <header class="profile-nav">
+        <a class="brand" href="<?= e($homeUrl) ?>"><span class="brand-name"><span class="brand-basreng">Basreng</span><span class="brand-qyuu">Qyuu&nbsp;</span><span class="brand-store">Store</span></span></a>
+        <nav>
+          <a href="<?= e($homeUrl) ?>">Kembali ke menu</a>
+          <a href="<?= e(app_url('pages/auth/logout.php')) ?>" class="profile-logout">Logout</a>
+        </nav>
       </header>
+    <?php endif; ?>
+
+    <main class="profile-card">
+      <section class="profile-hero">
+        <span class="register-eyebrow">PENGATURAN AKUN</span>
+        <h1><?= e($sectionTitles[$section]) ?></h1>
+      </section>
 
       <?php show_flash(); ?>
       <?php if ($error): ?>
         <div class="alert" role="alert"><?= e($error) ?></div>
       <?php endif; ?>
 
-      <form method="post" class="register-form">
+      <form method="post" class="profile-form">
         <input type="hidden" name="csrf" value="<?= e(csrf()) ?>">
         <input type="hidden" name="section" value="<?= e($section) ?>">
 
-        <?php if ($section === "address"): ?>
-          <section class="register-section" aria-labelledby="account-heading">
-            <div class="register-section-heading">
-              <span class="register-step">01</span>
+        <?php if ($section === "profile"): ?>
+          <section class="profile-section" aria-labelledby="account-heading">
+            <div class="profile-section-heading">
               <div>
-                <h2 id="account-heading">Informasi akun</h2>
-                <p>Nama pengguna dan email untuk akun Anda.</p>
+                <h2 id="account-heading">Informasi pribadi</h2>
               </div>
             </div>
-            <div class="register-grid">
-              <div class="register-field">
-                <label for="name">Nama pengguna</label>
+            <div class="profile-form-grid">
+              <div class="profile-field">
+                <label for="username">Username unik</label>
+                <input id="username" type="text" autocomplete="username" value="<?= e($account["username"]) ?>" readonly>
+                <small>Username digunakan sebagai identitas unik akun.</small>
+              </div>
+              <div class="profile-field">
+                <label for="name">Nama lengkap</label>
                 <input id="name" name="name" type="text" autocomplete="name" maxlength="120" value="<?= e($formValues["name"]) ?>" required>
               </div>
-              <div class="register-field">
+              <div class="profile-field">
                 <label for="email">Email</label>
                 <input id="email" name="email" type="email" autocomplete="email" maxlength="160" value="<?= e($formValues["email"]) ?>" required>
               </div>
-            </div>
-          </section>
-
-          <section class="register-section" aria-labelledby="address-heading">
-            <div class="register-section-heading">
-              <span class="register-step">02</span>
-              <div>
-                <h2 id="address-heading">Alamat</h2>
-                <p>Ubah alamat lengkap yang digunakan untuk pengiriman.</p>
+              <div class="profile-field">
+                <label for="phone">Nomor telepon <span class="profile-optional">(opsional)</span></label>
+                <input id="phone" name="phone" type="tel" autocomplete="tel" maxlength="30" value="<?= e($formValues["phone"]) ?>" placeholder="Contoh: 081234567890">
+              </div>
+              <div class="profile-field">
+                <label for="gender">Jenis kelamin <span class="profile-optional">(opsional)</span></label>
+                <select id="gender" name="gender">
+                  <option value="">Pilih jenis kelamin</option>
+                  <option value="male" <?= $formValues["gender"] === "male" ? "selected" : "" ?>>Laki-laki</option>
+                  <option value="female" <?= $formValues["gender"] === "female" ? "selected" : "" ?>>Perempuan</option>
+                  <option value="prefer_not_to_say" <?= $formValues["gender"] === "prefer_not_to_say" ? "selected" : "" ?>>Memilih tidak menyebutkan</option>
+                </select>
+              </div>
+              <div class="profile-field">
+                <label for="date_of_birth">Tanggal lahir <span class="profile-optional">(opsional)</span></label>
+                <input id="date_of_birth" name="date_of_birth" type="date" autocomplete="bday" max="<?= e(date("Y-m-d")) ?>" value="<?= e($formValues["date_of_birth"]) ?>">
               </div>
             </div>
-            <div class="register-grid">
-              <div class="register-field">
+          </section>
+        <?php elseif ($section === "address"): ?>
+          <section class="profile-section" aria-labelledby="address-heading">
+            <div class="profile-section-heading">
+              <div>
+                <h2 id="address-heading">Alamat</h2>
+              </div>
+            </div>
+            <div class="profile-form-grid">
+              <div class="profile-field">
                 <label for="province">Provinsi</label>
                 <select id="province" name="province" disabled><option value="">Memuat daftar provinsi...</option></select>
               </div>
-              <div class="register-field">
+              <div class="profile-field">
                 <label for="city">Kota / Kabupaten</label>
                 <select id="city" name="city" disabled><option value="">Pilih provinsi terlebih dahulu</option></select>
               </div>
-              <div class="register-field">
+              <div class="profile-field">
                 <label for="district">Kecamatan</label>
                 <select id="district" name="district" disabled><option value="">Pilih kota/kabupaten terlebih dahulu</option></select>
               </div>
-              <div class="register-field">
+              <div class="profile-field">
                 <label for="village">Kelurahan / Desa</label>
                 <select id="village" name="village" disabled><option value="">Pilih kecamatan terlebih dahulu</option></select>
               </div>
-              <div class="register-field register-field-wide">
+              <div class="profile-field profile-field-wide">
                 <label for="address">Alamat jalan</label>
                 <textarea id="address" name="address" rows="3" maxlength="500" autocomplete="street-address" placeholder="Nama jalan, nomor rumah, RT/RW, patokan"><?= e($formValues["address"]) ?></textarea>
               </div>
@@ -227,16 +366,15 @@ $homeUrl = $account["role"] === "seller"
             <button type="button" class="region-retry" id="region-retry" hidden>Muat ulang daftar wilayah</button>
           </section>
         <?php else: ?>
-          <section class="register-section" aria-labelledby="password-heading">
-            <div class="register-section-heading">
-              <span class="register-step">01</span>
+          <section class="profile-section" aria-labelledby="password-heading">
+            <div class="profile-section-heading">
               <div>
                 <h2 id="password-heading">Perbarui password</h2>
                 <p>Password baru harus terdiri dari minimal 8 karakter.</p>
               </div>
             </div>
-            <div class="register-grid">
-              <div class="register-field register-field-wide">
+            <div class="profile-form-grid">
+              <div class="profile-field profile-field-wide">
                 <label for="current_password">Password saat ini</label>
                 <div class="password-input-group">
                   <input id="current_password" name="current_password" type="password" autocomplete="current-password" required>
@@ -245,7 +383,7 @@ $homeUrl = $account["role"] === "seller"
                   </button>
                 </div>
               </div>
-              <div class="register-field">
+              <div class="profile-field">
                 <label for="new_password">Password baru</label>
                 <div class="password-input-group">
                   <input id="new_password" name="new_password" type="password" autocomplete="new-password" minlength="8" required>
@@ -254,7 +392,7 @@ $homeUrl = $account["role"] === "seller"
                   </button>
                 </div>
               </div>
-              <div class="register-field">
+              <div class="profile-field">
                 <label for="password_confirmation">Konfirmasi password baru</label>
                 <div class="password-input-group">
                   <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" minlength="8" required>
@@ -267,7 +405,15 @@ $homeUrl = $account["role"] === "seller"
           </section>
         <?php endif; ?>
 
-        <button class="btn full register-submit" type="submit"><?= $section === "password" ? "Simpan password baru" : "Simpan perubahan" ?></button>
+        <button class="btn full register-submit profile-submit" type="submit">
+          <?php if ($section === "password"): ?>
+            Simpan password baru
+          <?php elseif ($section === "address"): ?>
+            Simpan alamat
+          <?php else: ?>
+            Simpan perubahan
+          <?php endif; ?>
+        </button>
       </form>
     </main>
 
@@ -371,7 +517,7 @@ $homeUrl = $account["role"] === "seller"
       retryButton.addEventListener("click", loadProvinces);
       loadProvinces();
     </script>
-    <?php else: ?>
+    <?php elseif ($section === "password"): ?>
     <script>
       const openEye = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
       const closedEye = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';

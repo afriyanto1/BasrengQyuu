@@ -4,7 +4,12 @@ USE basreng_pos;
 CREATE TABLE users (
  id INT AUTO_INCREMENT PRIMARY KEY,
  name VARCHAR(120) NOT NULL,
+ username VARCHAR(30) NOT NULL UNIQUE,
  email VARCHAR(160) NOT NULL UNIQUE,
+ phone VARCHAR(30) NULL,
+ date_of_birth DATE NULL,
+ gender ENUM('male','female','prefer_not_to_say') NULL,
+ email_verified_at DATETIME NULL,
  password VARCHAR(255) NOT NULL,
  role ENUM('seller','buyer') NOT NULL DEFAULT 'buyer',
  province VARCHAR(120) NULL,
@@ -21,6 +26,21 @@ CREATE TABLE password_reset_tokens (
  expires_at DATETIME NOT NULL,
  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE email_verification_tokens (
+ user_id INT NOT NULL PRIMARY KEY,
+ token_hash CHAR(64) NOT NULL UNIQUE,
+ expires_at DATETIME NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE login_rate_limits (
+ ip_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL PRIMARY KEY,
+ attempts TINYINT UNSIGNED NOT NULL,
+ window_started_at DATETIME NOT NULL,
+ INDEX idx_login_rate_limits_window_started_at (window_started_at)
 );
 
 CREATE TABLE products (
@@ -111,5 +131,5 @@ INSERT INTO settings(setting_key,setting_value) VALUES
 -- Email: admin@basreng.local
 -- Password: password
 -- Buat hash menggunakan PHP: php -r "echo password_hash('password', PASSWORD_DEFAULT);"
-INSERT INTO users(name,email,password,role) VALUES
-('Administrator','admin@basreng.local','$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi','seller');
+INSERT INTO users(name,username,email,password,role,email_verified_at) VALUES
+('Administrator','admin','admin@basreng.local','$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi','seller',UTC_TIMESTAMP());

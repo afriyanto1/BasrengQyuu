@@ -5,16 +5,23 @@ $unread_notification_stmt = $pdo->prepare(
 );
 $unread_notification_stmt->execute([user()["id"]]);
 $unread_notification_count = (int) $unread_notification_stmt->fetchColumn();
+$buyer_cart = $_SESSION["buyer_cart"][(int) user()["id"]] ?? [];
+$buyer_cart_count = is_array($buyer_cart) ? array_sum(array_map("intval", $buyer_cart)) : 0;
 ?>
 <header>
-    <a class="brand" href="shop.php"><span class="brand-name"><span class="brand-basreng">Basreng</span><span class="brand-qyuu">Qyuu&nbsp;</span><span class="brand-store">Store</span></span></a>
-    <button class="mobile-toggle" onclick="document.querySelector('nav').classList.toggle('show')">
+    <a class="brand" href="<?= e(app_url('pages/buyer/shop.php')) ?>"><span class="brand-name"><span class="brand-basreng">Basreng</span><span class="brand-qyuu">Qyuu&nbsp;</span><span class="brand-store">Store</span></span></a>
+    <button class="mobile-toggle" type="button" aria-label="Buka navigasi" onclick="this.parentElement.querySelector('nav').classList.toggle('show')">
         ☰
     </button>
     <nav>
-        <a href="shop.php" class="<?= $current_page === 'shop.php' ? 'active' : '' ?>">Menu</a>
-        <a href="my_orders.php" class="<?= $current_page === 'my_orders.php' || $current_page === 'payment.php' ? 'active' : '' ?>">Pesanan Saya</a>
-        <a href="notifications.php" class="<?= $current_page === 'notifications.php' ? 'active' : '' ?>">
+        <a href="<?= e(app_url('pages/buyer/shop.php')) ?>" class="<?= $current_page === 'shop.php' ? 'active' : '' ?>">Menu</a>
+        <a href="<?= e(app_url('pages/buyer/cart.php')) ?>" class="<?= $current_page === 'cart.php' ? 'active' : '' ?>">
+            Keranjang<?php if ($buyer_cart_count > 0): ?>
+                <span class="notification-count"><?= $buyer_cart_count ?></span>
+            <?php endif; ?>
+        </a>
+        <a href="<?= e(app_url('pages/buyer/my_orders.php')) ?>" class="<?= $current_page === 'my_orders.php' || $current_page === 'payment.php' ? 'active' : '' ?>">Pesanan Saya</a>
+        <a href="<?= e(app_url('pages/buyer/notifications.php')) ?>" class="<?= $current_page === 'notifications.php' ? 'active' : '' ?>">
             Notifikasi<?php if ($unread_notification_count > 0): ?>
                 <span class="notification-count"><?= $unread_notification_count ?></span>
             <?php endif; ?>
@@ -25,9 +32,10 @@ $unread_notification_count = (int) $unread_notification_stmt->fetchColumn();
                 <span><?= e(user()["name"] ?? "Pengguna") ?></span>
             </summary>
             <div class="profile-menu-dropdown">
-                <a href="../auth/profile.php?section=address">Ubah alamat</a>
-                <a href="../auth/profile.php?section=password">Ganti password</a>
-                <a href="../auth/logout.php" class="profile-menu-logout">Logout</a>
+                <a href="<?= e(app_url('pages/auth/profile.php?section=profile')) ?>">Data profil</a>
+                <a href="<?= e(app_url('pages/auth/profile.php?section=address')) ?>">Ubah alamat</a>
+                <a href="<?= e(app_url('pages/auth/profile.php?section=password')) ?>">Ganti password</a>
+                <a href="<?= e(app_url('pages/auth/logout.php')) ?>" class="profile-menu-logout">Logout</a>
             </div>
         </details>
     </nav>

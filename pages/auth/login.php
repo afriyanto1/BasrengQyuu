@@ -5,23 +5,57 @@ if (user()) {
     exit();
 }
 $error = "";
+$showResendActivation = false;
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     check_csrf();
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE email=? LIMIT 1");
-    $stmt->execute([trim($_POST["email"] ?? "")]);
-    $u = $stmt->fetch();
-    if ($u && password_verify($_POST["password"] ?? "", $u["password"])) {
-        session_regenerate_id(true);
-        $_SESSION["user"] = [
-            "id" => $u["id"],
-            "name" => $u["name"],
-            "email" => $u["email"],
-            "role" => $u["role"],
-        ];
-        header("Location: " . app_url("index.php"));
-        exit();
+    $client_ip = $_SERVER["REMOTE_ADDR"] ?? "";
+    $cleanup = $pdo->prepare(
+        "DELETE FROM login_rate_limits WHERE window_started_at <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)"
+    );
+    $cleanup->execute();
+
+    $retry_after = login_rate_limit_retry_after($pdo, $client_ip);
+    if ($retry_after > 0) {
+        http_response_code(429);
+        header("Retry-After: " . $retry_after);
+        $error = "Terlalu banyak percobaan login. Silakan coba lagi setelah beberapa saat.";
+    } else {
+        $email = $_POST["email"] ?? "";
+        $password = $_POST["password"] ?? "";
+        $email = is_string($email) ? trim($email) : "";
+        $password = is_string($password) ? $password : "";
+
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE email=? LIMIT 1");
+        $stmt->execute([$email]);
+        $u = $stmt->fetch();
+        $credentials_valid = $u && password_verify($password, $u["password"]);
+        if ($credentials_valid) {
+            clear_login_rate_limit($pdo, $client_ip);
+            if ($u["email_verified_at"] === null) {
+                $error = "Email belum diverifikasi. Aktifkan email sebelum masuk.";
+                $showResendActivation = true;
+            } else {
+                session_regenerate_id(true);
+                $_SESSION["user"] = [
+                    "id" => $u["id"],
+                    "name" => $u["name"],
+                    "email" => $u["email"],
+                    "role" => $u["role"],
+                ];
+                header("Location: " . app_url("index.php"));
+                exit();
+            }
+        } else {
+            $retry_after = record_failed_login($pdo, $client_ip);
+            if ($retry_after > 0) {
+                http_response_code(429);
+                header("Retry-After: " . $retry_after);
+                $error = "Terlalu banyak percobaan login. Silakan coba lagi setelah beberapa saat.";
+            } else {
+                $error = "Email atau password salah.";
+            }
+        }
     }
-    $error = "Email atau password salah.";
 }
 ?>
 <!doctype html>
@@ -206,6 +240,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     <?php if ($error): ?>
         <div class="alert"><?= e($error) ?></div>
+        <?php if ($showResendActivation): ?>
+            <p><a href="resend_activation.php">Kirim ulang tautan aktivasi</a></p>
+        <?php endif; ?>
     <?php endif; ?>
 
     <form method="post">

@@ -193,7 +193,7 @@ $rows = $s->fetchAll();
                 <div class="order-footer">
                     <div>
                         <span style="font-size: 13px; color: #64748b;">Total Tagihan:</span>
-                        <div style="font-size: 18px; font-weight: 700; color: #ea580c;"><?= rupiah($o["total"]) ?></div>
+                        <div style="font-size: 18px; font-weight: 700; color: #2563eb;"><?= rupiah($o["total"]) ?></div>
                     </div>
                     <div>
                         <a href="payment.php?id=<?= $o["id"] ?>" class="btn-detail">
