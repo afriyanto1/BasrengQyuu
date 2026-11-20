@@ -42,35 +42,126 @@ $rows = $s->fetchAll();
             margin-bottom: 16px;
         }
         .badge {
-            display: inline-block;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-align: center;
-            text-transform: capitalize;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 1px solid transparent;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.25;
         }
-        .badge-awaiting_seller { background: #e0f2fe; color: #0284c7; }
-        .badge-paid { background: #d1fae5; color: #059669; }
-        .badge-refunded { background: #fee2e2; color: #dc2626; }
-        .badge-not_shipped { background: #fef3c7; color: #d97706; }
-        .badge-shipping { background: #ede9fe; color: #7c3aed; }
-        .badge-completed { background: #dcfce7; color: #15803d; }
-        .badge-returned { background: #fee2e2; color: #dc2626; }
+        .badge-unpaid { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
+        .badge-awaiting_seller { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+        .badge-paid { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+        .badge-refunded { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+        .badge-not_shipped { background: #fffbeb; border-color: #fde68a; color: #b45309; }
+        .badge-shipping { background: #f5f3ff; border-color: #ddd6fe; color: #6d28d9; }
+        .badge-completed { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+        .badge-returned { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+        .status-summary {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .status-item {
+            display: grid;
+            gap: 6px;
+        }
+        .status-label {
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            flex: none;
+            border-radius: 50%;
+            background: currentColor;
+        }
         
-        .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
+        .order-items {
+            margin-top: 14px;
+            padding: 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #f8fafc;
         }
-        .items-table td {
-            padding: 8px 0;
-            font-size: 14px;
+        .order-items-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .order-items-title {
+            margin: 0;
             color: #334155;
-            border-bottom: 1px dashed #f1f5f9;
+            font-size: 13px;
+            font-weight: 700;
         }
-        .items-table tr:last-child td {
-            border-bottom: none;
+        .order-items-count {
+            padding: 4px 9px;
+            border: 1px solid #dbeafe;
+            border-radius: 999px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .order-items-list {
+            display: grid;
+            gap: 8px;
+        }
+        .order-items-columns,
+        .order-item-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 72px;
+            align-items: center;
+            gap: 12px;
+        }
+        .order-items-columns {
+            padding: 0 12px 2px;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+        .order-items-columns span:last-child {
+            text-align: right;
+        }
+        .order-item-row {
+            display: grid;
+            align-items: center;
+            min-width: 0;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 9px;
+            background: #fff;
+        }
+        .order-item-name {
+            min-width: 0;
+            color: #1e293b;
+            font-size: 14px;
+            font-weight: 700;
+            overflow-wrap: anywhere;
+        }
+        .order-item-quantity {
+            justify-self: end;
+            padding: 5px 9px;
+            border-radius: 7px;
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
         }
         .order-footer {
             display: flex;
@@ -143,10 +234,20 @@ $rows = $s->fetchAll();
                         </div>
                         <p class="muted" style="margin: 0; font-size: 13px;"><?= e($o["created_at"]) ?></p>
                     </div>
-                    <div>
-                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
-                            <span class="badge badge-<?= e($o["payment_status"]) ?>"><?= e($payment_status_labels[$o["payment_status"]] ?? $o["payment_status"]) ?></span>
-                            <span class="badge badge-<?= e($o["status"]) ?>"><?= e($order_status_labels[$o["status"]] ?? $o["status"]) ?></span>
+                    <div class="status-summary" aria-label="<?= e(app_language() === "en" ? "Order statuses" : "Status pesanan") ?>">
+                        <div class="status-item">
+                            <span class="status-label"><?= e(app_language() === "en" ? "Payment" : "Pembayaran") ?></span>
+                            <span class="badge badge-<?= e($o["payment_status"]) ?>">
+                                <span class="status-dot" aria-hidden="true"></span>
+                                <?= e($payment_status_labels[$o["payment_status"]] ?? $o["payment_status"]) ?>
+                            </span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label"><?= e(app_language() === "en" ? "Order" : "Pesanan") ?></span>
+                            <span class="badge badge-<?= e($o["status"]) ?>">
+                                <span class="status-dot" aria-hidden="true"></span>
+                                <?= e($order_status_labels[$o["status"]] ?? $o["status"]) ?>
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -160,44 +261,29 @@ $rows = $s->fetchAll();
                     </div>
                 <?php endif; ?>
                 
-                <table class="items-table">
-                    <?php foreach ($order_items as $item): ?>
-                        <tr>
-                            <td>
-                                <strong><?= e($item["product_name"]) ?></strong> 
-                                <span class="muted">× <?= $item["qty"] ?></span>
-                            </td>
-                            <td style="text-align: right; font-weight: 600; color: #1e293b;">
-                                <?= rupiah($item["subtotal"]) ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </table>
-
-                <div style="font-size: 13px; color: #64748b; margin-top: 12px;">
-                    <div><?= e(app_language() === "en" ? "Product subtotal:" : "Subtotal produk:") ?> <strong><?= rupiah((float) $o["total"] - (float) $o["shipping_fee"]) ?></strong></div>
-                    <div>
-                        Ongkir:
-                        <strong>
-                            <?php if ($o["shipping_area"] === null): ?>
-                                Menunggu konfirmasi ongkir
-                            <?php elseif ($o["shipping_area"] === "free_zone"): ?>
-                                Gratis ongkir wilayah khusus
-                            <?php else: ?>
-                                <?= e(shipping_area_label($o["shipping_area"])) ?> — <?= rupiah($o["shipping_fee"]) ?>
-                            <?php endif; ?>
-                        </strong>
+                <section class="order-items" aria-label="<?= e(app_language() === "en" ? "Ordered products" : "Barang dalam pesanan") ?>">
+                    <div class="order-items-heading">
+                        <h3 class="order-items-title"><?= e(app_language() === "en" ? "Ordered products" : "Barang dalam pesanan") ?></h3>
+                        <span class="order-items-count"><?= count($order_items) ?> <?= e(app_language() === "en" ? "items" : "produk") ?></span>
                     </div>
-                </div>
+                    <div class="order-items-columns">
+                        <span><?= e(app_language() === "en" ? "Product name" : "Nama produk") ?></span>
+                        <span><?= e(app_language() === "en" ? "Quantity" : "Jumlah") ?></span>
+                    </div>
+                    <div class="order-items-list">
+                        <?php foreach ($order_items as $item): ?>
+                            <div class="order-item-row">
+                                <strong class="order-item-name"><?= e($item["product_name"]) ?></strong>
+                                <span class="order-item-quantity"><?= (int) $item["qty"] ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
 
                 <div class="order-footer">
                     <div>
-                        <span style="font-size: 13px; color: #64748b;">Total Tagihan:</span>
-                        <div style="font-size: 18px; font-weight: 700; color: #2563eb;"><?= rupiah($o["total"]) ?></div>
-                    </div>
-                    <div>
                         <a href="payment.php?id=<?= $o["id"] ?>" class="btn-detail">
-                            Detail Pembayaran →
+                            <?= e(app_language() === "en" ? "Order Details" : "Detail Pesanan") ?> →
                         </a>
                     </div>
                 </div>

@@ -67,7 +67,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $pdo->prepare(
             "UPDATE products SET name=?, name_en=?, description=?, description_en=?, price=?, stock=?, image=? WHERE id=?"
         )->execute([$name, $nameEn ?: null, $desc, $descEn ?: null, $price, $stock, $imagePath, $id]);
-        flash("Produk berhasil diperbarui.");
+        flash("Produk berhasil diperbarui.", "success");
         header("Location: products.php");
         exit();
     }

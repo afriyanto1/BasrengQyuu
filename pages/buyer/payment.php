@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $method !== 'COD') {
             $update = $pdo->prepare("UPDATE orders SET payment_proof = ?, payment_status = 'awaiting_seller' WHERE id = ?");
             $update->execute([$proof_path, $id]);
             
-            flash('Bukti pembayaran berhasil diunggah! Silakan klik tombol konfirmasi ke WhatsApp Admin.');
+            flash('Bukti pembayaran berhasil diunggah! Silakan klik tombol konfirmasi ke WhatsApp Admin.', "success");
             header("Location: payment.php?id=" . $id);
             exit;
         } else {
@@ -133,6 +133,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $method !== 'COD') {
         .payment-copy-row { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; margin-top:12px; }
         .payment-copy-button { margin:0; padding:7px 12px; font-size:13px; }
         .payment-copy-status { min-height:1.5em; }
+        .order-statuses { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; margin:18px 0 22px; }
+        .order-status-card { min-width:0; padding:14px 16px; border:1px solid #e2e8f0; border-radius:12px; background:linear-gradient(145deg, #fff, #f8fafc); }
+        .order-status-label { display:block; margin-bottom:10px; color:#64748b; font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+        .order-status-value { display:inline-flex; align-items:center; gap:8px; max-width:100%; padding:8px 12px; border:1px solid transparent; border-radius:999px; font-size:14px; font-weight:700; line-height:1.3; }
+        .order-status-dot { width:8px; height:8px; flex:none; border-radius:50%; background:currentColor; }
+        .status-unpaid { color:#c2410c; background:#fff7ed; border-color:#fed7aa; }
+        .status-awaiting_seller { color:#1d4ed8; background:#eff6ff; border-color:#bfdbfe; }
+        .status-paid { color:#047857; background:#ecfdf5; border-color:#a7f3d0; }
+        .status-refunded, .status-returned { color:#b91c1c; background:#fef2f2; border-color:#fecaca; }
+        .status-not_shipped { color:#b45309; background:#fffbeb; border-color:#fde68a; }
+        .status-shipping { color:#6d28d9; background:#f5f3ff; border-color:#ddd6fe; }
+        .status-completed { color:#047857; background:#ecfdf5; border-color:#a7f3d0; }
+        .order-items-card { margin:18px 0; padding:18px; border:1px solid #e2e8f0; border-radius:12px; background:#fff; }
+        .order-items-heading { margin:0 0 14px; color:#0f172a; font-size:17px; }
+        .order-items-table { width:100%; border-collapse:collapse; table-layout:fixed; }
+        .order-items-table th { padding:10px 12px; background:#f8fafc; color:#64748b; font-size:11px; font-weight:700; letter-spacing:.04em; text-align:left; text-transform:uppercase; }
+        .order-items-table th:nth-child(2), .order-items-table td:nth-child(2) { width:64px; text-align:center; }
+        .order-items-table th:last-child, .order-items-table td:last-child { width:132px; text-align:right; white-space:nowrap; }
+        .order-items-table td { padding:12px; border-bottom:1px solid #f1f5f9; color:#334155; font-size:14px; overflow-wrap:anywhere; }
+        .order-items-table tr:last-child td { border-bottom:0; }
+        .order-items-table td:last-child { color:#0f172a; font-weight:700; }
+        .order-summary { margin:0 0 20px; padding:16px 18px; border:1px solid #e2e8f0; border-radius:12px; background:#f8fafc; }
+        .order-summary-row { display:flex; justify-content:space-between; gap:16px; padding:5px 0; color:#64748b; font-size:14px; }
+        .order-summary-row strong { color:#1e293b; text-align:right; }
+        .order-summary-total { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-top:10px; padding-top:12px; border-top:1px solid #cbd5e1; color:#0f172a; font-size:15px; font-weight:700; }
+        .order-summary-total strong { color:#2563eb; font-size:21px; white-space:nowrap; }
+        @media (max-width:560px) {
+            .order-statuses { grid-template-columns:1fr; }
+            .order-items-card { padding:12px; }
+            .order-items-table th, .order-items-table td { padding:9px 7px; font-size:12px; }
+            .order-items-table th:nth-child(2), .order-items-table td:nth-child(2) { width:48px; }
+            .order-items-table th:last-child, .order-items-table td:last-child { width:102px; }
+            .order-summary { padding:14px; }
+            .order-summary-total strong { font-size:18px; }
+        }
     </style>
 </head>
 <body>
@@ -141,23 +176,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $method !== 'COD') {
     <div class="panel payment" style="max-width: 650px; margin: 30px auto;">
         <h1>Pembayaran <?=$order_seq_label?></h1>
         <p class="muted">Nomor ID Unik: <strong>#<?=$order_unique_id?></strong></p>
+
+        <section class="order-statuses" aria-label="<?= e(app_language() === "en" ? "Order statuses" : "Status pesanan") ?>">
+            <div class="order-status-card">
+                <span class="order-status-label"><?= e(app_language() === "en" ? "Payment status" : "Status pembayaran") ?></span>
+                <span class="order-status-value status-<?= e($o["payment_status"]) ?>">
+                    <span class="order-status-dot" aria-hidden="true"></span>
+                    <?= e($payment_status_labels[$o["payment_status"]] ?? $o["payment_status"]) ?>
+                </span>
+            </div>
+            <div class="order-status-card">
+                <span class="order-status-label"><?= e(app_language() === "en" ? "Order status" : "Status pesanan") ?></span>
+                <span class="order-status-value status-<?= e($o["status"]) ?>">
+                    <span class="order-status-dot" aria-hidden="true"></span>
+                    <?= e($order_status_labels[$o["status"]] ?? $o["status"]) ?>
+                </span>
+            </div>
+        </section>
         
         <?php show_flash(); ?>
 
-        <div style="text-align: left; background: #f8fafc; padding: 16px; border-radius: 8px; margin: 16px 0; border: 1px solid #e2e8f0;">
-            <h3 style="margin-top:0;">Rincian Barang (<?=$order_seq_label?>):</h3>
-            <ul style="padding-left: 20px; margin-bottom: 0;">
-                <?php foreach($items as $it):?>
-                    <li><strong><?=e($it['product_name'])?></strong> × <?=$it['qty']?> — <?=rupiah($it['subtotal'])?></li>
-                <?php endforeach;?>
-            </ul>
-        </div>
+        <section class="order-items-card">
+            <h3 class="order-items-heading">Rincian Barang (<?=$order_seq_label?>)</h3>
+            <table class="order-items-table">
+                <thead>
+                    <tr>
+                        <th><?= e(t("Produk")) ?></th>
+                        <th><?= e(t("Jumlah")) ?></th>
+                        <th><?= e(t("Subtotal")) ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($items as $it): ?>
+                        <tr>
+                            <td><strong><?= e($it["product_name"]) ?></strong></td>
+                            <td><?= (int) $it["qty"] ?></td>
+                            <td><?= rupiah($it["subtotal"]) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </section>
 
-        <p>Subtotal produk: <strong><?=rupiah((float) $o['total'] - (float) $o['shipping_fee'])?></strong></p>
-        <?php if (!$shipping_pending): ?>
-            <p>Ongkir: <strong><?= $o['shipping_area'] === 'free_zone' ? 'Gratis (wilayah khusus)' : e(shipping_area_label($o['shipping_area'])) . ' — ' . rupiah($o['shipping_fee']) ?></strong></p>
-        <?php endif; ?>
-        <h2>Total Tagihan: <?=rupiah($o['total'])?></h2>
+        <section class="order-summary" aria-label="<?= e(app_language() === "en" ? "Order total" : "Ringkasan tagihan") ?>">
+            <div class="order-summary-row">
+                <span><?= e(app_language() === "en" ? "Product subtotal" : "Subtotal produk") ?></span>
+                <strong><?= rupiah((float) $o["total"] - (float) $o["shipping_fee"]) ?></strong>
+            </div>
+            <?php if (!$shipping_pending): ?>
+                <div class="order-summary-row">
+                    <span><?= e(app_language() === "en" ? "Shipping" : "Ongkir") ?></span>
+                    <strong><?= $o["shipping_area"] === "free_zone" ? e(app_language() === "en" ? "Free" : "Gratis") : e(shipping_area_label($o["shipping_area"])) . " — " . rupiah($o["shipping_fee"]) ?></strong>
+                </div>
+            <?php endif; ?>
+            <div class="order-summary-total">
+                <span><?= e(app_language() === "en" ? "Total due" : "Total tagihan") ?></span>
+                <strong><?= rupiah($o["total"]) ?></strong>
+            </div>
+        </section>
         
         <?php if ($shipping_pending): ?>
             <div class="alert" role="status">
@@ -260,8 +336,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $method !== 'COD') {
         </div>
         <?php endif; ?>
         
-        <p>Status pembayaran: <span class="pill"><?=e($payment_status_labels[$o['payment_status']] ?? $o['payment_status'])?></span></p>
-        <p>Status pesanan: <span class="pill"><?=e($order_status_labels[$o['status']] ?? $o['status'])?></span></p>
         <a class="btn" style="background: #737b8c;" href="my_orders.php">← Lihat Riwayat Pesanan Saya</a>
     </div>
 </main>

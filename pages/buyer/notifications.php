@@ -4,7 +4,38 @@ require_role("buyer");
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     check_csrf();
-    if (($_POST["action"] ?? "") !== "mark_all_read") {
+
+    $action = $_POST["action"] ?? "";
+    if ($action === "mark_read") {
+        $notification_id = filter_var($_POST["notification_id"] ?? null, FILTER_VALIDATE_INT);
+        if ($notification_id === false || $notification_id === null || $notification_id < 1) {
+            http_response_code(400);
+            exit("Notifikasi tidak valid.");
+        }
+
+        $notification_stmt = $pdo->prepare(
+            "SELECT order_id FROM notifications WHERE id = ? AND user_id = ? LIMIT 1"
+        );
+        $notification_stmt->execute([$notification_id, user()["id"]]);
+        $notification = $notification_stmt->fetch();
+        if (!$notification) {
+            http_response_code(404);
+            exit("Notifikasi tidak ditemukan.");
+        }
+
+        $mark_read = $pdo->prepare(
+            "UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?"
+        );
+        $mark_read->execute([$notification_id, user()["id"]]);
+
+        $target = $notification["order_id"] !== null
+            ? "payment.php?id=" . (int) $notification["order_id"]
+            : "my_orders.php";
+        header("Location: " . $target);
+        exit();
+    }
+
+    if ($action !== "mark_all_read") {
         http_response_code(400);
         exit("Aksi notifikasi tidak valid.");
     }
@@ -67,11 +98,22 @@ $unread_count = count(array_filter(
             font-size: 12px;
         }
         .notification-link {
-            flex: 0 0 auto;
             color: #2563eb;
             font-size: 13px;
             font-weight: 600;
             text-decoration: none;
+        }
+        .notification-action {
+            flex: 0 0 auto;
+            margin: 0;
+        }
+        button.notification-link {
+            padding: 0;
+            border: 0;
+            background: transparent;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
         }
         @media (max-width: 560px) {
             .notification-card {
@@ -101,11 +143,6 @@ $unread_count = count(array_filter(
         <?php show_flash(); ?>
 
         <?php foreach ($notifications as $notification): ?>
-            <?php
-            $target = $notification["order_id"] !== null
-                ? "payment.php?id=" . (int) $notification["order_id"]
-                : "my_orders.php";
-            ?>
             <article class="notification-card <?= empty($notification["is_read"]) ? "unread" : "" ?>">
                 <div>
                     <p class="notification-message"><?= e($notification["message"]) ?></p>
@@ -113,7 +150,12 @@ $unread_count = count(array_filter(
                         <?= e($notification["created_at"]) ?>
                     </time>
                 </div>
-                <a class="notification-link" href="<?= e($target) ?>"><?= e(app_language() === "en" ? "View order" : "Lihat pesanan") ?></a>
+                <form class="notification-action" method="post">
+                    <input type="hidden" name="csrf" value="<?= csrf() ?>">
+                    <input type="hidden" name="action" value="mark_read">
+                    <input type="hidden" name="notification_id" value="<?= (int) $notification["id"] ?>">
+                    <button class="notification-link" type="submit"><?= e(app_language() === "en" ? "View order" : "Lihat pesanan") ?></button>
+                </form>
             </article>
         <?php endforeach; ?>
 

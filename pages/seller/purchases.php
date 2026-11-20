@@ -24,7 +24,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
             $pdo->prepare('INSERT INTO purchases(material_id, qty, unit_cost, total, note) VALUES(?, ?, ?, ?, ?)')->execute([$id, $qty, $cost, $total, $note]);
             $pdo->commit();
 
-            flash('Transaksi pembelian berhasil dicatat.');
+            flash('Transaksi pembelian berhasil dicatat.', "success");
         } else {
             flash('Bahan baku tidak ditemukan.', 'danger');
         }

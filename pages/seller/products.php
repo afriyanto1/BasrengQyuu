@@ -9,7 +9,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     
     if(isset($_POST['delete'])){
         $pdo->prepare('UPDATE products SET active=0 WHERE id=?')->execute([(int)$_POST['delete']]);
-        flash('Produk berhasil dinonaktifkan.');
+        flash('Produk berhasil dinonaktifkan.', "success");
     } else {
         $name = trim($_POST['name'] ?? '');
         $desc = trim($_POST['description'] ?? '');
@@ -36,7 +36,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         if($name !== '' && $price >= 0 && $stock >= 0){
             $stmt = $pdo->prepare('INSERT INTO products(name, name_en, description, description_en, price, stock, image) VALUES(?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([$name, $nameEn ?: null, $desc, $descEn ?: null, $price, $stock, $imagePath]);
-            flash('Produk baru berhasil ditambahkan.');
+            flash('Produk baru berhasil ditambahkan.', "success");
         } else {
             flash('Nama produk dan harga/stok wajib diisi dengan benar.', 'danger');
         }

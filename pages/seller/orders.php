@@ -154,7 +154,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
 
             $pdo->commit();
-            flash("Pesanan manual berhasil ditambahkan.");
+            flash("Pesanan manual berhasil ditambahkan.", "success");
         } catch (RuntimeException $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
@@ -313,7 +313,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     flash(
                         $tracking_number !== "" && $tracking_number_changed
                             ? "Nomor resi disimpan dan status pesanan diperbarui menjadi Proses Pengiriman."
-                            : "Nomor resi berhasil diperbarui."
+                            : "Nomor resi berhasil diperbarui.",
+                        "success"
                     );
                 } catch (RuntimeException $e) {
                     if ($pdo->inTransaction()) {

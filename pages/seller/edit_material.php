@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt_update = $pdo->prepare('UPDATE materials SET name = ?, unit = ?, unit_cost = ? WHERE id = ?');
         $stmt_update->execute([$name, $unit, $unit_cost, $id]);
         
-        flash('Bahan baku berhasil diperbarui.');
+        flash('Bahan baku berhasil diperbarui.', "success");
         header('Location: materials.php');
         exit;
     } else {

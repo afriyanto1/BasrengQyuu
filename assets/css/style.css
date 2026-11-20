@@ -329,13 +329,20 @@ header nav .profile-menu-dropdown a.profile-menu-logout {
 }
 
 .profile-menu-dropdown .language-switch label {
+    margin: 0;
+    padding: 0;
+    background: transparent;
     color: #334155;
 }
 
 .profile-menu-dropdown .language-switch select {
+    width: 64px;
+    min-width: 64px;
+    flex: 0 0 64px;
+    padding: 0 8px;
     border-color: #cbd5e1;
-    background: #f8fafc;
-    color: #1e293b;
+    background: #ffffff;
+    color: #334155;
 }
 
 .auth-page > .language-switch,
@@ -1254,6 +1261,10 @@ td {
         box-shadow: none;
     }
 
+    header nav .profile-menu-dropdown .language-switch label {
+        color: #ffffff;
+    }
+
     header nav .profile-menu-dropdown a,
     header nav .profile-menu-dropdown a.profile-menu-logout {
         color: #e2e8f0;
@@ -1262,6 +1273,11 @@ td {
     header nav .profile-menu-dropdown a:hover {
         background: #334155;
         color: #ffffff;
+    }
+
+    header nav .profile-menu-dropdown a.profile-menu-logout,
+    header nav .profile-menu-dropdown a.profile-menu-logout:hover {
+        color: #f87171;
     }
 
     header nav a {

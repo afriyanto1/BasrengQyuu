@@ -166,11 +166,18 @@ $cartCount = array_sum(array_map("intval", $cart));
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($products as $product):
+                    <?php
+                    $selectedCount = 0;
+                    $selectedTotal = 0;
+                    foreach ($products as $product):
                         $productId = (int) $product["id"];
                         $savedQuantity = max(1, (int) ($cart[$productId] ?? 1));
                         $available = (bool) $product["active"] && (int) $product["stock"] > 0;
                         $checkoutQuantity = $available ? min($savedQuantity, (int) $product["stock"]) : $savedQuantity;
+                        if ($available) {
+                            $selectedCount += $checkoutQuantity;
+                            $selectedTotal += (float) $product["price"] * $checkoutQuantity;
+                        }
                     ?>
                     <tr class="cart-row" data-product-id="<?= $productId ?>" data-price="<?= e($product["price"]) ?>">
                         <td>
@@ -213,12 +220,12 @@ $cartCount = array_sum(array_map("intval", $cart));
 
         <section class="cart-summary">
             <div>
-                <strong id="cart-selected-count">0 barang dipilih</strong>
+                <strong id="cart-selected-count"><?= $selectedCount ?> barang dipilih</strong>
             </div>
             <div class="cart-total">
                 <span class="muted">Total produk dipilih</span>
-                <strong id="cart-selected-total">Rp 0</strong>
-                <button class="cart-checkout" id="cart-checkout-button" type="submit" form="cart-checkout-form">Checkout Sekarang →</button>
+                <strong id="cart-selected-total"><?= e(rupiah($selectedTotal)) ?></strong>
+                <button class="cart-checkout" id="cart-checkout-button" type="submit" form="cart-checkout-form" <?= $selectedCount === 0 ? "disabled" : "" ?>>Checkout Sekarang →</button>
             </div>
         </section>
     <?php else: ?>
@@ -269,6 +276,12 @@ $cartCount = array_sum(array_map("intval", $cart));
             checkoutButton.disabled = count === 0 || pendingUpdates > 0;
         }
 
+        function setQuantity(row, quantity) {
+            const input = row.querySelector(".cart-quantity");
+            input.value = String(quantity);
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+
         async function saveQuantity(row, quantity, previousQuantity) {
             const controls = Array.from(row.querySelectorAll(".cart-qty-button"));
             const formData = new FormData(quantityForm);
@@ -292,8 +305,7 @@ $cartCount = array_sum(array_map("intval", $cart));
                     throw new Error(result.message || "Jumlah gagal disimpan.");
                 }
             } catch (error) {
-                row.querySelector(".cart-quantity").value = previousQuantity;
-                updateSummary();
+                setQuantity(row, previousQuantity);
                 alert(error.message || "Jumlah gagal disimpan. Silakan coba lagi.");
             } finally {
                 pendingUpdates -= 1;
@@ -311,6 +323,7 @@ $cartCount = array_sum(array_map("intval", $cart));
             const quantity = row.querySelector(".cart-quantity");
             const decreaseButton = row.querySelector(".cart-decrease");
             const increaseButton = row.querySelector(".cart-increase");
+            quantity.addEventListener("input", updateSummary);
 
             decreaseButton.addEventListener("click", function () {
                 const previousQuantity = Number(quantity.value);
@@ -321,8 +334,7 @@ $cartCount = array_sum(array_map("intval", $cart));
                     return;
                 }
                 const nextQuantity = previousQuantity - 1;
-                quantity.value = nextQuantity;
-                updateSummary();
+                setQuantity(row, nextQuantity);
                 saveQuantity(row, nextQuantity, previousQuantity);
             });
 
@@ -332,11 +344,11 @@ $cartCount = array_sum(array_map("intval", $cart));
                 if (nextQuantity === previousQuantity) {
                     return;
                 }
-                quantity.value = nextQuantity;
-                updateSummary();
+                setQuantity(row, nextQuantity);
                 saveQuantity(row, nextQuantity, previousQuantity);
             });
         });
+        window.addEventListener("pageshow", updateSummary);
         updateSummary();
     })();
 </script>

@@ -64,7 +64,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 ?><!doctype html>
-<html lang="id">
+<html lang="<?= e(app_language()) ?>">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -73,6 +73,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <base href="<?= e(app_url('pages/auth/')) ?>">
     <link rel="icon" type="image/svg+xml" href="<?= e(app_favicon_url()) ?>">
     <link rel="stylesheet" href="<?= e(app_url('assets/css/style.css')) ?>">
+    <script>
+        window.APP_LANGUAGE = <?= json_encode(app_language(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+        document.documentElement.lang = window.APP_LANGUAGE;
+    </script>
     <style>
         body.auth-page {
             min-height: 100vh;
@@ -102,7 +106,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </style>
 </head>
 <body class="auth-page">
-<?php include dirname(__DIR__, 2) . "/includes/partials/language_switch.php"; ?>
 <main class="login-box">
     <h1>Lupa password?</h1>
     <p>Masukkan email akun Anda. Kami akan mengirim tautan untuk membuat password baru.</p>
@@ -121,5 +124,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </form>
     <a class="auth-back" href="login.php">Kembali ke login</a>
 </main>
+<?php if (app_language() === "en"): ?>
+<script src="<?= e(app_url("assets/js/i18n.js")) ?>"></script>
+<?php endif; ?>
 </body>
 </html>

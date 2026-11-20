@@ -19,7 +19,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $pdo->prepare(
                 "INSERT INTO settings(setting_key,setting_value) VALUES('seller_qr_path',?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)"
             )->execute(["uploads/" . $name]);
-            flash("QR pembayaran berhasil diperbarui.");
+            flash("QR pembayaran berhasil diperbarui.", "success");
         }
     }
     header("Location: settings.php");

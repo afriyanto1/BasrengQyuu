@@ -10,7 +10,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (isset($_POST["delete"])) {
         $id = (int)$_POST['delete'];
         $pdo->prepare('DELETE FROM materials WHERE id = ?')->execute([$id]);
-        flash('Bahan baku berhasil dihapus.');
+        flash('Bahan baku berhasil dihapus.', "success");
     } elseif (isset($_POST["new_material"])) {
         $name = trim($_POST["name"] ?? "");
         $unit = trim($_POST["unit"] ?? "kg");
@@ -21,7 +21,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 "INSERT INTO materials(name, unit, unit_cost, stock) VALUES(?, ?, ?, 0)"
             );
             $stmt->execute([$name, $unit, $unit_cost]);
-            flash("Bahan baku berhasil ditambahkan.");
+            flash("Bahan baku berhasil ditambahkan.", "success");
         } else {
             flash("Nama bahan tidak boleh kosong.", "danger");
         }
