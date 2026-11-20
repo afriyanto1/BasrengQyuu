@@ -193,7 +193,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             border-color: #bbf7d0;
         }
         .login-forgot {
-            margin: 12px 0 0;
+            margin: 6px 0 0;
             text-align: right;
             font-size: 13px;
         }
@@ -261,9 +261,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <button class="btn full" type="submit">Masuk ke Sistem</button>
     </form>
 
-    <p class="login-forgot">
-        <a href="forgot_password.php">Lupa password?</a>
-    </p>
+    <div class="login-actions-row">
+        <?php include dirname(__DIR__, 2) . "/includes/partials/login_language_switch.php"; ?>
+        <p class="login-forgot">
+            <a href="forgot_password.php">Lupa password?</a>
+        </p>
+    </div>
     <p class="login-register">
         Belum punya akun pembeli? <a href="register.php">Daftar di sini</a>
     </p>

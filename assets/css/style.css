@@ -176,6 +176,181 @@ header nav .profile-menu-dropdown a.profile-menu-logout {
     color: #dc2626;
 }
 
+.language-switch {
+    display: flex;
+    align-items: center;
+}
+
+.language-switch form {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.language-switch label {
+    color: #cbd5e1;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.language-switch select {
+    height: 32px;
+    min-width: 58px;
+    border: 1px solid #475569;
+    border-radius: 7px;
+    background: #1e293b;
+    color: #ffffff;
+    padding: 0 7px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.language-switch select:focus {
+    outline: 2px solid #93c5fd;
+    outline-offset: 2px;
+}
+
+.login-language-picker {
+    width: 72px;
+    margin: 0;
+}
+
+.login-actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 0;
+}
+
+.login-actions-row .login-forgot {
+    margin: 0;
+}
+
+.login-language-picker form {
+    margin: 0;
+}
+
+.login-language-picker label {
+    margin: 0 0 3px;
+    text-align: left;
+    color: #52617a;
+    font-size: 10px;
+}
+
+.login-language-menu {
+    position: relative;
+}
+
+.login-language-menu summary {
+    height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    list-style: none;
+    padding: 0 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #1e293b;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.login-language-menu summary::-webkit-details-marker {
+    display: none;
+}
+
+.login-language-menu .language-flag {
+    display: block;
+    width: 18px;
+    height: 12px;
+    flex: none;
+    border-radius: 1px;
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.1);
+}
+
+.login-language-options {
+    position: absolute;
+    z-index: 20;
+    right: 0;
+    bottom: calc(100% + 6px);
+    left: 0;
+    overflow: hidden;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    background: #ffffff;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+}
+
+.login-language-options button {
+    width: 100%;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 0;
+    border-bottom: 1px solid #edf2f7;
+    background: #ffffff;
+    color: #1e293b;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.login-language-options button:last-child {
+    border-bottom: 0;
+}
+
+.login-language-options button:hover {
+    background: #eff6ff;
+}
+
+.login-language-options .language-flag {
+    display: block;
+    width: 18px;
+    height: 12px;
+    flex: none;
+    border-radius: 1px;
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.1);
+}
+
+.profile-menu-dropdown .profile-language-setting {
+    padding: 8px 10px 6px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.profile-menu-dropdown .language-switch form {
+    justify-content: space-between;
+    width: 100%;
+}
+
+.profile-menu-dropdown .language-switch label {
+    color: #334155;
+}
+
+.profile-menu-dropdown .language-switch select {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    color: #1e293b;
+}
+
+.auth-page > .language-switch,
+.register-page > .language-switch {
+    position: fixed;
+    top: 16px;
+    right: 20px;
+    z-index: 1200;
+    padding: 6px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 9px;
+    background: rgba(15, 23, 42, 0.78);
+    backdrop-filter: blur(8px);
+}
+
 .mobile-toggle {
     display: none;
     background: transparent;
@@ -822,11 +997,29 @@ td {
 }
 
 .profile-hero {
+    position: relative;
     margin-bottom: 30px;
     padding: 24px 26px;
     border-radius: 14px;
     background: #0f172a;
     color: #ffffff;
+}
+
+.profile-hero .profile-language-setting {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+}
+
+.profile-hero .profile-language-setting .language-switch {
+    padding: 5px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.profile-hero .profile-language-setting .language-switch label {
+    color: #dbeafe;
 }
 
 .profile-hero h1 {

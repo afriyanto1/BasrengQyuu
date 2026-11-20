@@ -120,6 +120,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </style>
 </head>
 <body class="auth-page">
+<?php include dirname(__DIR__, 2) . "/includes/partials/language_switch.php"; ?>
 <main class="login-box">
     <h1>Buat password baru</h1>
     <p>Gunakan password minimal 8 karakter.</p>

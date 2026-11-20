@@ -1,0 +1,3 @@
+ALTER TABLE products
+    ADD COLUMN IF NOT EXISTS name_en VARCHAR(150) NULL AFTER name,
+    ADD COLUMN IF NOT EXISTS description_en TEXT NULL AFTER description;

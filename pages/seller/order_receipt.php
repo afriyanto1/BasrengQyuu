@@ -10,7 +10,7 @@ if ($orderId === false || $orderId === null || $orderId < 1) {
 
 $orderQuery = $pdo->prepare(
     "SELECT o.*, COALESCE(o.customer_name, u.name) AS recipient_name,
-            u.province, u.city, u.district, u.village, u.address
+            u.country_code, u.province, u.city, u.district, u.village, u.address
      FROM orders o
      LEFT JOIN users u ON u.id = o.buyer_id
      WHERE o.id = ?
@@ -23,7 +23,7 @@ if (!$order) {
     exit("Pesanan tidak ditemukan.");
 }
 if (
-    !in_array($order["shipping_area"], ["jabodetabek", "outside"], true) ||
+    in_array($order["shipping_area"], ["pickup", "free_zone", null], true) ||
     (float) $order["shipping_fee"] <= 0
 ) {
     http_response_code(403);
@@ -41,15 +41,17 @@ $address = implode(", ", array_filter([
     $order["district"],
     $order["city"],
     $order["province"],
+    shipping_country_options()[$order["country_code"] ?? "ID"] ?? null,
 ], static fn($part): bool => is_string($part) && trim($part) !== ""));
 $orderCode = $order["order_code"] ?? $order["id"];
-$shippingArea = $order["shipping_area"] === "jabodetabek" ? "Jabodetabek" : "Luar Jabodetabek";
+$shippingArea = shipping_area_label($order["shipping_area"]);
 ?><!doctype html>
 <html lang="id">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Label Pengiriman #<?= e($orderCode) ?> - BasrengQyuu Store</title>
+    <link rel="stylesheet" href="<?= e(app_url('assets/css/style.css')) ?>?v=<?= (int) filemtime(app_path('assets/css/style.css')) ?>">
     <style>
         * { box-sizing: border-box; }
         body {
@@ -161,6 +163,7 @@ $shippingArea = $order["shipping_area"] === "jabodetabek" ? "Jabodetabek" : "Lua
     </style>
 </head>
 <body>
+    <?php include dirname(__DIR__, 2) . "/includes/partials/language_switch.php"; ?>
     <div class="print-actions">
         <button type="button" onclick="window.print()">Cetak Resi</button>
     </div>

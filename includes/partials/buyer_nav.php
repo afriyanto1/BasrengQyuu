@@ -5,7 +5,7 @@ $unread_notification_stmt = $pdo->prepare(
 );
 $unread_notification_stmt->execute([user()["id"]]);
 $unread_notification_count = (int) $unread_notification_stmt->fetchColumn();
-$buyer_cart = $_SESSION["buyer_cart"][(int) user()["id"]] ?? [];
+$buyer_cart = sync_buyer_cart($pdo, (int) user()["id"]);
 $buyer_cart_count = is_array($buyer_cart) ? array_sum(array_map("intval", $buyer_cart)) : 0;
 ?>
 <header>
@@ -35,6 +35,9 @@ $buyer_cart_count = is_array($buyer_cart) ? array_sum(array_map("intval", $buyer
                 <a href="<?= e(app_url('pages/auth/profile.php?section=profile')) ?>">Data profil</a>
                 <a href="<?= e(app_url('pages/auth/profile.php?section=address')) ?>">Ubah alamat</a>
                 <a href="<?= e(app_url('pages/auth/profile.php?section=password')) ?>">Ganti password</a>
+                <div class="profile-language-setting">
+                    <?php include __DIR__ . "/language_switch.php"; ?>
+                </div>
                 <a href="<?= e(app_url('pages/auth/logout.php')) ?>" class="profile-menu-logout">Logout</a>
             </div>
         </details>

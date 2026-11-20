@@ -6,7 +6,7 @@ require_login();
 $accountId = (int) user()["id"];
 $query = $pdo->prepare(
     "SELECT id, name, username, email, phone, date_of_birth, gender, email_verified_at, password, role,
-            province, city, district, village, address
+            country_code, province, city, district, village, address
      FROM users WHERE id = ? LIMIT 1"
 );
 $query->execute([$accountId]);
@@ -27,6 +27,7 @@ $formValues = [
     "phone" => $account["phone"] ?? "",
     "date_of_birth" => $account["date_of_birth"] ?? "",
     "gender" => $account["gender"] ?? "",
+    "country_code" => $account["country_code"] ?? "ID",
     "province" => $account["province"] ?? "",
     "city" => $account["city"] ?? "",
     "district" => $account["district"] ?? "",
@@ -199,15 +200,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     } elseif ($section === "address" && $error === "") {
         $addressFieldsPosted = true;
-        foreach (["province", "city", "district", "village", "address"] as $field) {
+        foreach (["country_code", "province", "city", "district", "village", "address"] as $field) {
             if (!isset($_POST[$field]) || !is_string($_POST[$field])) {
                 $addressFieldsPosted = false;
             }
         }
-        foreach (["province", "city", "district", "village", "address"] as $field) {
+        foreach (["country_code", "province", "city", "district", "village", "address"] as $field) {
             $postedValue = $_POST[$field] ?? "";
             $formValues[$field] = is_string($postedValue) ? trim($postedValue) : "";
         }
+        $validCountry = array_key_exists($formValues["country_code"], shipping_country_options());
         $addressFields = ["province", "city", "district", "village", "address"];
         $hasAddress = count(array_filter(
             $addressFields,
@@ -220,16 +222,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         if (!$addressFieldsPosted) {
             $error = "Daftar wilayah belum siap. Muat ulang halaman sebelum menyimpan profil.";
+        } elseif (!$validCountry) {
+            $error = "Pilih negara tujuan pengiriman yang valid.";
         } elseif ($hasAddress && !$hasCompleteAddress) {
-            $error = "Lengkapi semua bagian alamat, dari provinsi hingga alamat jalan.";
+            $error = "Lengkapi semua bagian alamat hingga alamat jalan.";
         } else {
             try {
                 $update = $pdo->prepare(
                     "UPDATE users
-                     SET province = ?, city = ?, district = ?, village = ?, address = ?
+                     SET country_code = ?, province = ?, city = ?, district = ?, village = ?, address = ?
                      WHERE id = ?"
                 );
                 $update->execute([
+                    $formValues["country_code"],
                     $formValues["province"] ?: null,
                     $formValues["city"] ?: null,
                     $formValues["district"] ?: null,
@@ -271,9 +276,24 @@ $sectionTitles = [
     <?php else: ?>
       <header class="profile-nav">
         <a class="brand" href="<?= e($homeUrl) ?>"><span class="brand-name"><span class="brand-basreng">Basreng</span><span class="brand-qyuu">Qyuu&nbsp;</span><span class="brand-store">Store</span></span></a>
+        <button class="mobile-toggle" type="button" aria-label="Buka navigasi" onclick="this.parentElement.querySelector('nav').classList.toggle('show')">☰</button>
         <nav>
           <a href="<?= e($homeUrl) ?>">Kembali ke menu</a>
-          <a href="<?= e(app_url('pages/auth/logout.php')) ?>" class="profile-logout">Logout</a>
+          <details class="profile-menu">
+            <summary class="profile-menu-toggle" aria-label="Buka menu akun">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"></path></svg>
+              <span><?= e(user()["name"] ?? "Pengguna") ?></span>
+            </summary>
+            <div class="profile-menu-dropdown">
+              <a href="<?= e(app_url('pages/auth/profile.php?section=profile')) ?>">Data profil</a>
+              <a href="<?= e(app_url('pages/auth/profile.php?section=address')) ?>">Ubah alamat</a>
+              <a href="<?= e(app_url('pages/auth/profile.php?section=password')) ?>">Ganti password</a>
+              <div class="profile-language-setting">
+                <?php include dirname(__DIR__, 2) . "/includes/partials/language_switch.php"; ?>
+              </div>
+              <a href="<?= e(app_url('pages/auth/logout.php')) ?>" class="profile-menu-logout">Logout</a>
+            </div>
+          </details>
         </nav>
       </header>
     <?php endif; ?>
@@ -341,6 +361,15 @@ $sectionTitles = [
               </div>
             </div>
             <div class="profile-form-grid">
+              <div class="profile-field profile-field-wide">
+                <label for="country_code">Negara tujuan</label>
+                <select id="country_code" name="country_code" required>
+                  <?php foreach (shipping_country_options() as $code => $countryName): ?>
+                    <option value="<?= e($code) ?>" <?= $formValues["country_code"] === $code ? "selected" : "" ?>><?= e($countryName) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+              <div id="domestic-address-fields" class="profile-form-grid profile-field-wide">
               <div class="profile-field">
                 <label for="province">Provinsi</label>
                 <select id="province" name="province" disabled><option value="">Memuat daftar provinsi...</option></select>
@@ -356,6 +385,25 @@ $sectionTitles = [
               <div class="profile-field">
                 <label for="village">Kelurahan / Desa</label>
                 <select id="village" name="village" disabled><option value="">Pilih kecamatan terlebih dahulu</option></select>
+              </div>
+              </div>
+              <div id="international-address-fields" class="profile-form-grid profile-field-wide" hidden>
+                <div class="profile-field">
+                  <label for="foreign-province">Provinsi / negara bagian</label>
+                  <input id="foreign-province" name="province" type="text" maxlength="120" disabled>
+                </div>
+                <div class="profile-field">
+                  <label for="foreign-city">Kota</label>
+                  <input id="foreign-city" name="city" type="text" maxlength="120" disabled>
+                </div>
+                <div class="profile-field">
+                  <label for="foreign-district">Distrik / wilayah</label>
+                  <input id="foreign-district" name="district" type="text" maxlength="120" disabled>
+                </div>
+                <div class="profile-field">
+                  <label for="foreign-village">Kelurahan / kawasan</label>
+                  <input id="foreign-village" name="village" type="text" maxlength="120" disabled>
+                </div>
               </div>
               <div class="profile-field profile-field-wide">
                 <label for="address">Alamat jalan</label>
@@ -428,12 +476,42 @@ $sectionTitles = [
           ],
           JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
       ) ?>;
+      const countrySelect = document.getElementById("country_code");
+      const domesticFields = document.getElementById("domestic-address-fields");
+      const internationalFields = document.getElementById("international-address-fields");
+      const domesticControls = [...domesticFields.querySelectorAll("select")];
+      const internationalControls = [...internationalFields.querySelectorAll("input")];
+      const foreignValues = {
+        province: <?= json_encode($formValues["country_code"] === "ID" ? "" : $formValues["province"], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        city: <?= json_encode($formValues["country_code"] === "ID" ? "" : $formValues["city"], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        district: <?= json_encode($formValues["country_code"] === "ID" ? "" : $formValues["district"], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        village: <?= json_encode($formValues["country_code"] === "ID" ? "" : $formValues["village"], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+      };
       const provinceSelect = document.getElementById("province");
       const citySelect = document.getElementById("city");
       const districtSelect = document.getElementById("district");
       const villageSelect = document.getElementById("village");
       const feedback = document.getElementById("region-feedback");
       const retryButton = document.getElementById("region-retry");
+      let regionsLoaded = false;
+      let regionsLoading = false;
+      function toggleAddressFields() {
+        const isDomestic = countrySelect.value === "ID";
+        domesticFields.hidden = !isDomestic;
+        internationalFields.hidden = isDomestic;
+        domesticFields.style.display = isDomestic ? "grid" : "none";
+        internationalFields.style.display = isDomestic ? "none" : "grid";
+        domesticControls.forEach((control) => { control.disabled = !isDomestic; });
+        internationalControls.forEach((control) => {
+          control.disabled = isDomestic;
+          if (!isDomestic && !control.value) {
+            control.value = foreignValues[control.name] || "";
+          }
+        });
+        feedback.hidden = !isDomestic;
+        retryButton.hidden = !isDomestic || retryButton.hidden;
+        if (isDomestic && !regionsLoaded && !regionsLoading) loadProvinces();
+      }
 
       function resetSelect(select, label) {
         select.replaceChildren(new Option(label, ""));
@@ -461,15 +539,20 @@ $sectionTitles = [
       }
 
       async function loadProvinces() {
+        regionsLoading = true;
         feedback.textContent = "Memuat daftar provinsi...";
         retryButton.hidden = true;
         resetSelect(provinceSelect, "Memuat daftar provinsi...");
         try {
           await loadRegions(provinceSelect, "../api/region_options.php?level=provinces", "Pilih provinsi", savedRegion.province);
+          regionsLoaded = true;
           feedback.textContent = "";
           if (provinceSelect.value) await loadCities(savedRegion.city);
         } catch (error) {
+          regionsLoaded = false;
           showRegionError(error);
+        } finally {
+          regionsLoading = false;
         }
       }
 
@@ -515,7 +598,8 @@ $sectionTitles = [
         try { await loadVillages(); } catch (error) { showRegionError(error); }
       });
       retryButton.addEventListener("click", loadProvinces);
-      loadProvinces();
+      countrySelect.addEventListener("change", toggleAddressFields);
+      toggleAddressFields();
     </script>
     <?php elseif ($section === "password"): ?>
     <script>

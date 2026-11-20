@@ -12,6 +12,7 @@ CREATE TABLE users (
  email_verified_at DATETIME NULL,
  password VARCHAR(255) NOT NULL,
  role ENUM('seller','buyer') NOT NULL DEFAULT 'buyer',
+ country_code VARCHAR(5) NOT NULL DEFAULT 'ID',
  province VARCHAR(120) NULL,
  city VARCHAR(120) NULL,
  district VARCHAR(120) NULL,
@@ -53,6 +54,16 @@ CREATE TABLE products (
  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE buyer_cart_items (
+ buyer_id INT NOT NULL,
+ product_id INT NOT NULL,
+ quantity INT UNSIGNED NOT NULL,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ PRIMARY KEY (buyer_id, product_id),
+ FOREIGN KEY (buyer_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
 CREATE TABLE materials (
  id INT AUTO_INCREMENT PRIMARY KEY,
  name VARCHAR(150) NOT NULL,
@@ -79,7 +90,7 @@ CREATE TABLE orders (
  customer_phone VARCHAR(30) NULL,
  total DECIMAL(12,2) NOT NULL,
  shipping_distance_km DECIMAL(7,2) NULL,
- shipping_area ENUM('pickup','jabodetabek','outside','free_zone') NULL,
+ shipping_area VARCHAR(50) NULL,
  shipping_fee DECIMAL(12,2) NOT NULL DEFAULT 0,
  tracking_number VARCHAR(100) NULL,
  status ENUM('not_shipped','shipping','completed','returned') NOT NULL DEFAULT 'not_shipped',

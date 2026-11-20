@@ -107,8 +107,8 @@ $rows = $s->fetchAll();
 <main>
     <div class="order-container">
         <div style="margin-bottom: 24px;">
-            <h1 style="margin: 0 0 6px 0; font-size: 24px; color: #0f172a;">Riwayat Pesanan</h1>
-            <p class="muted" style="margin: 0; font-size: 14px;">Pantau status pesanan dan lakukan pembayaran atau konfirmasi pesanan Anda.</p>
+            <h1 style="margin: 0 0 6px 0; font-size: 24px; color: #0f172a;"><?= e(t("Riwayat Pesanan")) ?></h1>
+            <p class="muted" style="margin: 0; font-size: 14px;"><?= e(app_language() === "en" ? "Track your order status and make payments or confirm your orders." : "Pantau status pesanan dan lakukan pembayaran atau konfirmasi pesanan Anda.") ?></p>
         </div>
 
         <?php foreach ($rows as $o): ?>
@@ -121,16 +121,16 @@ $rows = $s->fetchAll();
             $order_seq_label = "Pesanan #" . ($o["order_seq"] ?? 1);
             $order_unique_id = $o["order_code"] ?? $o["id"];
             $payment_status_labels = [
-                "unpaid" => "Belum Dibayar",
-                "awaiting_seller" => "Menunggu Konfirmasi Pembayaran",
-                "paid" => "Lunas",
-                "refunded" => "Pengembalian Dana",
+                "unpaid" => app_language() === "en" ? "Unpaid" : "Belum Dibayar",
+                "awaiting_seller" => app_language() === "en" ? "Awaiting Payment Confirmation" : "Menunggu Konfirmasi Pembayaran",
+                "paid" => app_language() === "en" ? "Paid" : "Lunas",
+                "refunded" => app_language() === "en" ? "Refunded" : "Pengembalian Dana",
             ];
             $order_status_labels = [
-                "not_shipped" => "Belum Dikirim",
-                "shipping" => "Proses Pengiriman",
-                "completed" => "Selesai",
-                "returned" => "Dikembalikan",
+                "not_shipped" => app_language() === "en" ? "Not Shipped" : "Belum Dikirim",
+                "shipping" => app_language() === "en" ? "Shipping" : "Proses Pengiriman",
+                "completed" => app_language() === "en" ? "Completed" : "Selesai",
+                "returned" => app_language() === "en" ? "Returned" : "Dikembalikan",
             ];
             $payment_method = strtoupper($o["payment_method"] ?? 'QRIS');
             ?>
@@ -152,7 +152,7 @@ $rows = $s->fetchAll();
                 </div>
 
                 <div style="font-size: 13px; color: #64748b; margin-bottom: 8px;">
-                    Metode Pembayaran: <strong style="color: #1e293b;"><?= $payment_method ?></strong>
+                    <?= e(app_language() === "en" ? "Payment Method:" : "Metode Pembayaran:") ?> <strong style="color: #1e293b;"><?= $payment_method ?></strong>
                 </div>
                 <?php if (!empty($o["tracking_number"])): ?>
                     <div style="font-size: 13px; color: #64748b; margin-bottom: 8px;">
@@ -175,7 +175,7 @@ $rows = $s->fetchAll();
                 </table>
 
                 <div style="font-size: 13px; color: #64748b; margin-top: 12px;">
-                    <div>Subtotal produk: <strong><?= rupiah((float) $o["total"] - (float) $o["shipping_fee"]) ?></strong></div>
+                    <div><?= e(app_language() === "en" ? "Product subtotal:" : "Subtotal produk:") ?> <strong><?= rupiah((float) $o["total"] - (float) $o["shipping_fee"]) ?></strong></div>
                     <div>
                         Ongkir:
                         <strong>
@@ -184,7 +184,7 @@ $rows = $s->fetchAll();
                             <?php elseif ($o["shipping_area"] === "free_zone"): ?>
                                 Gratis ongkir wilayah khusus
                             <?php else: ?>
-                                <?= rupiah($o["shipping_fee"]) ?>
+                                <?= e(shipping_area_label($o["shipping_area"])) ?> — <?= rupiah($o["shipping_fee"]) ?>
                             <?php endif; ?>
                         </strong>
                     </div>
@@ -206,7 +206,7 @@ $rows = $s->fetchAll();
         
         <?php if (empty($rows)): ?>
             <div class="panel" style="text-align: center; padding: 50px; background: #fff; border-radius: 14px; border: 1px solid #e2e8f0;">
-                <p class="muted" style="margin: 0; font-size: 15px;">Belum ada riwayat pesanan yang dibuat.</p>
+                <p class="muted" style="margin: 0; font-size: 15px;"><?= e(app_language() === "en" ? "No order history has been created." : "Belum ada riwayat pesanan yang dibuat.") ?></p>
             </div>
         <?php endif; ?>
     </div>

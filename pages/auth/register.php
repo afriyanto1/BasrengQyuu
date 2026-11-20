@@ -9,6 +9,7 @@ $formValues = [
     "username" => "",
     "email" => "",
     "phone" => "",
+    "country_code" => "ID",
     "province" => "",
     "city" => "",
     "district" => "",
@@ -52,6 +53,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $error = "Periksa nama, email, dan nomor telepon. Nomor telepon bersifat opsional.";
         $activeStep = 1;
     } elseif (
+        !array_key_exists($formValues["country_code"], shipping_country_options()) ||
         $formValues["province"] === "" ||
         $formValues["city"] === "" ||
         $formValues["district"] === "" ||
@@ -97,8 +99,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         $insertUser = $pdo->prepare(
                             "INSERT INTO users
                                 (name, username, email, phone, date_of_birth, gender, email_verified_at,
-                                 password, role, province, city, district, village, address)
-                             VALUES (?, ?, ?, ?, ?, ?, NULL, ?, 'buyer', ?, ?, ?, ?, ?)"
+                                 password, role, country_code, province, city, district, village, address)
+                             VALUES (?, ?, ?, ?, ?, ?, NULL, ?, 'buyer', ?, ?, ?, ?, ?, ?)"
                         );
                         $insertUser->execute([
                             $formValues["name"],
@@ -108,6 +110,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             $formValues["date_of_birth"],
                             $formValues["gender"] !== "" ? $formValues["gender"] : null,
                             password_hash($pass, PASSWORD_DEFAULT),
+                            $formValues["country_code"],
                             $formValues["province"],
                             $formValues["city"],
                             $formValues["district"],
@@ -167,6 +170,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <link rel="stylesheet" href="<?= e(app_url('assets/css/style.css')) ?>?v=<?= (int) filemtime(dirname(__DIR__, 2) . '/assets/css/style.css') ?>">
   </head>
   <body class="register-page">
+<?php include dirname(__DIR__, 2) . "/includes/partials/language_switch.php"; ?>
     <main class="register-card">
       <div class="register-topbar">
         <a class="register-back" href="login.php" aria-label="Kembali ke login">&larr; Kembali ke login</a>
@@ -225,6 +229,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             <section class="register-panel" data-panel="2" aria-label="Alamat pengiriman">
               <div class="register-grid register-grid-address">
+                <div class="register-field register-field-wide">
+                  <label for="country_code">Negara tujuan</label>
+                  <select id="country_code" name="country_code" required>
+                    <?php foreach (shipping_country_options() as $code => $countryName): ?>
+                      <option value="<?= e($code) ?>" <?= $formValues["country_code"] === $code ? "selected" : "" ?>><?= e($countryName) ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+                <div id="domestic-address-fields" class="register-grid register-grid-address register-field-wide">
                 <div class="register-field">
                   <label for="province">Provinsi</label>
                   <select id="province" name="province" required disabled>
@@ -248,6 +261,25 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                   <select id="village" name="village" required disabled>
                     <option value="">Pilih kecamatan terlebih dahulu</option>
                   </select>
+                </div>
+                </div>
+                <div id="international-address-fields" class="register-grid register-grid-address register-field-wide" hidden>
+                  <div class="register-field">
+                    <label for="foreign-province">Provinsi / negara bagian</label>
+                    <input id="foreign-province" name="province" type="text" maxlength="120" disabled>
+                  </div>
+                  <div class="register-field">
+                    <label for="foreign-city">Kota</label>
+                    <input id="foreign-city" name="city" type="text" maxlength="120" disabled>
+                  </div>
+                  <div class="register-field">
+                    <label for="foreign-district">Distrik / wilayah</label>
+                    <input id="foreign-district" name="district" type="text" maxlength="120" disabled>
+                  </div>
+                  <div class="register-field">
+                    <label for="foreign-village">Kelurahan / kawasan</label>
+                    <input id="foreign-village" name="village" type="text" maxlength="120" disabled>
+                  </div>
                 </div>
                 <div class="register-field register-field-wide">
                   <label for="address">Alamat lengkap</label>
@@ -471,12 +503,46 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
           ],
           JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
       ) ?>;
+      const countrySelect = document.getElementById("country_code");
+      const domesticFields = document.getElementById("domestic-address-fields");
+      const internationalFields = document.getElementById("international-address-fields");
+      const domesticControls = [...domesticFields.querySelectorAll("select")];
+      const internationalControls = [...internationalFields.querySelectorAll("input")];
+      const foreignValues = {
+        province: <?= json_encode($formValues["country_code"] === "ID" ? "" : $formValues["province"], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        city: <?= json_encode($formValues["country_code"] === "ID" ? "" : $formValues["city"], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        district: <?= json_encode($formValues["country_code"] === "ID" ? "" : $formValues["district"], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        village: <?= json_encode($formValues["country_code"] === "ID" ? "" : $formValues["village"], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+      };
       const provinceSelect = document.getElementById("province");
       const citySelect = document.getElementById("city");
       const districtSelect = document.getElementById("district");
       const villageSelect = document.getElementById("village");
       const feedback = document.getElementById("region-feedback");
       const retryButton = document.getElementById("region-retry");
+      let regionsLoaded = false;
+      let regionsLoading = false;
+      function toggleAddressFields() {
+        const isDomestic = countrySelect.value === "ID";
+        domesticFields.hidden = !isDomestic;
+        internationalFields.hidden = isDomestic;
+        domesticFields.style.display = isDomestic ? "grid" : "none";
+        internationalFields.style.display = isDomestic ? "none" : "grid";
+        domesticControls.forEach((control) => {
+          control.disabled = !isDomestic;
+          control.required = isDomestic;
+        });
+        internationalControls.forEach((control) => {
+          control.disabled = isDomestic;
+          control.required = !isDomestic;
+          if (!isDomestic && !control.value) {
+            control.value = foreignValues[control.name] || "";
+          }
+        });
+        feedback.hidden = !isDomestic;
+        retryButton.hidden = !isDomestic || retryButton.hidden;
+        if (isDomestic && !regionsLoaded && !regionsLoading) loadProvinces();
+      }
       emailInput.addEventListener("input", () => {
         emailInput.setCustomValidity("");
         emailFeedback.textContent = "";
@@ -643,12 +709,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
           return false;
         }
 
-        if (
-          step === 2 &&
+        const incompleteDomesticRegion = countrySelect.value === "ID" &&
           [provinceSelect, citySelect, districtSelect, villageSelect].some(
             (select) => select.disabled || !select.value
-          )
-        ) {
+          );
+        if (step === 2 && incompleteDomesticRegion) {
           feedback.textContent = "Pilih provinsi, kota/kabupaten, kecamatan, dan kelurahan/desa secara berurutan.";
           const firstIncomplete = [provinceSelect, citySelect, districtSelect, villageSelect]
             .find((select) => select.disabled || !select.value);
@@ -762,6 +827,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       }
 
       async function loadProvinces() {
+        regionsLoading = true;
         feedback.textContent = "Memuat daftar provinsi...";
         retryButton.hidden = true;
         resetSelect(provinceSelect, "Memuat daftar provinsi...");
@@ -772,12 +838,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             "Pilih provinsi",
             savedRegion.province
           );
+          regionsLoaded = true;
           feedback.textContent = "";
           if (provinceSelect.value) {
             await loadCities(savedRegion.city);
           }
         } catch (error) {
+          regionsLoaded = false;
           showRegionError(error);
+        } finally {
+          regionsLoading = false;
         }
       }
 
@@ -863,7 +933,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       });
 
       retryButton.addEventListener("click", loadProvinces);
-      loadProvinces();
+      countrySelect.addEventListener("change", toggleAddressFields);
+      toggleAddressFields();
     </script>
   </body>
 </html>

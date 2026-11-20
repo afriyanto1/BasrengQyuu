@@ -50,7 +50,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
         if (
             !is_string($shipping_area) ||
-            !in_array($shipping_area, ["pickup", "jabodetabek", "outside", "free_zone"], true)
+            !array_key_exists($shipping_area, manual_shipping_area_options())
         ) {
             flash("Data pengiriman tidak valid. Silakan periksa kembali.");
             header("Location: orders.php?action=create");
@@ -283,7 +283,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         throw new RuntimeException("Pesanan tidak ditemukan.");
                     }
                     if (
-                        !in_array($old_order["shipping_area"], ["jabodetabek", "outside"], true) ||
+                        in_array($old_order["shipping_area"], ["pickup", "free_zone", null], true) ||
                         (float) $old_order["shipping_fee"] <= 0
                     ) {
                         throw new RuntimeException("Nomor resi hanya dapat diisi untuk pesanan dengan ongkir berbayar.");
@@ -393,7 +393,7 @@ $totalPages = max(1, (int) ceil($totalRows / $perPage));
 $page = min($page, $totalPages);
 $offset = ($page - 1) * $perPage;
 
-$sql = "SELECT o.*, COALESCE(o.customer_name, u.name) buyer, u.email, u.province, u.city, u.district, u.village, u.address FROM orders o LEFT JOIN users u ON u.id=o.buyer_id WHERE " . $whereSql . " ORDER BY o.id DESC LIMIT ? OFFSET ?";
+$sql = "SELECT o.*, COALESCE(o.customer_name, u.name) buyer, u.email, u.country_code, u.province, u.city, u.district, u.village, u.address FROM orders o LEFT JOIN users u ON u.id=o.buyer_id WHERE " . $whereSql . " ORDER BY o.id DESC LIMIT ? OFFSET ?";
 $stmt = $pdo->prepare($sql);
 foreach ($params as $index => $param) {
     $stmt->bindValue($index + 1, $param);
@@ -822,14 +822,13 @@ $products = $pdo->query("SELECT id, name, price, stock FROM products WHERE activ
                 <div class="filter-group">
                     <label for="shipping_area">Wilayah pengiriman</label>
                     <select id="shipping_area" name="shipping_area" required>
-                        <option value="pickup">Ambil sendiri</option>
-                        <option value="free_zone">Wilayah gratis ongkir khusus</option>
-                        <option value="jabodetabek">Jabodetabek</option>
-                        <option value="outside">Luar Jabodetabek / pulau lain</option>
+                        <?php foreach (manual_shipping_area_options() as $area => $label): ?>
+                            <option value="<?= e($area) ?>"><?= e($label) ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>
-            <p class="muted" style="margin: 12px 0 0;">Pesanan manual: pilih gratis ongkir untuk Kecamatan Pasar Kemis, Sepatan, Rajeg, atau Kelurahan Jatiwaringin di Kecamatan Mauk. COD hanya tersedia untuk wilayah gratis ongkir. Selain itu, Jabodetabek Rp25.000 dan luar Jabodetabek Rp50.000.</p>
+            <p class="muted" style="margin: 12px 0 0;">Pilih zona sesuai alamat penerima. COD hanya tersedia untuk alamat di wilayah gratis ongkir khusus (Kecamatan Pasar Kemis, Sepatan, Rajeg, atau Kelurahan Jatiwaringin di Kecamatan Mauk).</p>
             <div class="table-wrap" style="margin: 16px 0;">
                 <table class="table-modern">
                     <thead>
@@ -996,6 +995,7 @@ $products = $pdo->query("SELECT id, name, price, stock FROM products WHERE activ
                                             $o["district"],
                                             $o["city"],
                                             $o["province"],
+                                            shipping_country_options()[$o["country_code"] ?? "ID"] ?? null,
                                         ])) ?: "Belum diisi") ?>
                                     </p>
                                 <?php endif; ?>
@@ -1005,7 +1005,7 @@ $products = $pdo->query("SELECT id, name, price, stock FROM products WHERE activ
                                     <p style="font-size: 13px; margin: 0 0 10px;">Ambil sendiri — gratis.</p>
                                 <?php elseif ($o["shipping_area"] !== null): ?>
                                     <p style="font-size: 13px; margin: 0 0 10px;">
-                                        <?= $o["shipping_area"] === "jabodetabek" ? "Jabodetabek" : "Luar Jabodetabek" ?> —
+                                        <?= e(shipping_area_label($o["shipping_area"])) ?> —
                                         <?= rupiah($o["shipping_fee"]) ?>
                                     </p>
                                 <?php else: ?>
@@ -1049,7 +1049,7 @@ $products = $pdo->query("SELECT id, name, price, stock FROM products WHERE activ
                                 </div>
                                 <button class="btn" type="submit" form="order-update-<?= (int) $o["id"] ?>">Simpan Perubahan</button>
                                 <?php if (
-                                    in_array($o["shipping_area"], ["jabodetabek", "outside"], true) &&
+                                    !in_array($o["shipping_area"], ["pickup", "free_zone", null], true) &&
                                     (float) $o["shipping_fee"] > 0
                                 ): ?>
                                     <div class="detail-shipping-grid">

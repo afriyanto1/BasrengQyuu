@@ -3,6 +3,7 @@ require dirname(__DIR__, 2) . "/includes/config.php";
 require_role('buyer');
 
 $buyerId = (int) user()["id"];
+$cart = sync_buyer_cart($pdo, $buyerId);
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     check_csrf();
 
@@ -28,17 +29,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         exit();
     }
 
-    if (!isset($_SESSION["buyer_cart"][$buyerId]) || !is_array($_SESSION["buyer_cart"][$buyerId])) {
-        $_SESSION["buyer_cart"][$buyerId] = [];
-    }
-    $currentQuantity = (int) ($_SESSION["buyer_cart"][$buyerId][$productId] ?? 0);
+    $currentQuantity = (int) ($cart[$productId] ?? 0);
     if ($currentQuantity + $quantity > (int) $product["stock"]) {
         flash("Jumlah di keranjang melebihi stok tersedia.");
         header("Location: shop.php");
         exit();
     }
 
-    $_SESSION["buyer_cart"][$buyerId][$productId] = $currentQuantity + $quantity;
+    persist_buyer_cart_item($pdo, $buyerId, $productId, $currentQuantity + $quantity);
     flash("Produk berhasil ditambahkan ke keranjang.", "success");
     header("Location: shop.php");
     exit();
@@ -195,11 +193,11 @@ $products = $pdo->query('SELECT * FROM products WHERE active=1 AND stock>0 ORDER
 <main>
     <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; margin-bottom:20px;">
         <div>
-            <h1 style="margin: 0 0 4px; font-size: 26px;">Menu Basreng</h1>
-            <p class="muted" style="margin: 0;">Selamat datang, <strong><?=e(user()['name'])?></strong>. Pilih camilan favoritmu.</p>
+            <h1 style="margin: 0 0 4px; font-size: 26px;">Menu <?= app_language() === "en" ? "Snacks" : "Basreng" ?></h1>
+            <p class="muted" style="margin: 0;"><?= app_language() === "en" ? "Welcome," : "Selamat datang," ?> <strong><?=e(user()['name'])?></strong>. <?= app_language() === "en" ? "Choose your favorite snack." : "Pilih camilan favoritmu." ?></p>
         </div>
         <a href="cart.php" class="btn" style="margin:0; padding:10px 16px; background:#fff; color:#2563eb; border:1px solid #93c5fd; border-radius:10px; text-decoration:none; font-weight:700;">
-            🛒 Keranjang <span style="display:inline-grid; place-items:center; min-width:22px; height:22px; margin-left:5px; padding:0 6px; border-radius:999px; background:#2563eb; color:#fff; font-size:12px;"><?=array_sum($_SESSION["buyer_cart"][$buyerId] ?? [])?></span>
+            🛒 <?= app_language() === "en" ? "Cart" : "Keranjang" ?> <span style="display:inline-grid; place-items:center; min-width:22px; height:22px; margin-left:5px; padding:0 6px; border-radius:999px; background:#2563eb; color:#fff; font-size:12px;"><?=array_sum($_SESSION["buyer_cart"][$buyerId] ?? [])?></span>
         </a>
     </div>
 
@@ -220,19 +218,19 @@ $products = $pdo->query('SELECT * FROM products WHERE active=1 AND stock>0 ORDER
                                 <span style="font-size: 36px;">🌶️</span>
                             <?php endif;?>
                         </div>
-                        <h2 class="product-title"><?=e($p['name'])?></h2>
-                        <p class="product-desc"><?=e($p['description'] ?: 'Basreng renyah dan gurih pilihan terbaik.')?></p>
+                        <h2 class="product-title"><?=e(app_language() === "en" && !empty($p["name_en"]) ? $p["name_en"] : $p["name"])?></h2>
+                        <p class="product-desc"><?=e(app_language() === "en" && !empty($p["description_en"]) ? $p["description_en"] : ($p["description"] ?: 'Basreng renyah dan gurih pilihan terbaik.'))?></p>
                     </div>
                     <div>
                         <div class="product-price"><?=rupiah($p['price'])?></div>
-                        <div class="product-stock">Stok tersedia: <strong><?=$p['stock']?></strong></div>
+                        <div class="product-stock"><?= app_language() === "en" ? "Available stock:" : "Stok tersedia:" ?> <strong><?=$p['stock']?></strong></div>
                         <div class="qty-box">
-                            <label for="qty-<?=$p['id']?>">Jumlah</label>
+                            <label for="qty-<?=$p['id']?>"><?= app_language() === "en" ? "Quantity" : "Jumlah" ?></label>
                             <input id="qty-<?=$p['id']?>" type="number" name="qty[<?=$p['id']?>]" min="0" max="<?=$p['stock']?>" value="0" required>
                         </div>
                         <div class="product-actions">
-                            <button type="submit" class="btn-cart" name="add_to_cart" value="<?=$p['id']?>">🛒 Masukkan</button>
-                            <button type="submit" class="btn-buy" name="buy_now" value="<?=$p['id']?>" formaction="checkout.php">Beli Sekarang</button>
+                            <button type="submit" class="btn-cart" name="add_to_cart" value="<?=$p['id']?>">                            🛒 <?= app_language() === "en" ? "Add to Cart" : "Masukkan" ?></button>
+                            <button type="submit" class="btn-buy" name="buy_now" value="<?=$p['id']?>" formaction="checkout.php"><?= app_language() === "en" ? "Buy Now" : "Beli Sekarang" ?></button>
                         </div>
                     </div>
                 </div>

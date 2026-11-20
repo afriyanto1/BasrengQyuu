@@ -102,6 +102,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </style>
 </head>
 <body class="auth-page">
+<?php include dirname(__DIR__, 2) . "/includes/partials/language_switch.php"; ?>
 <main class="login-box">
     <h1>Lupa password?</h1>
     <p>Masukkan email akun Anda. Kami akan mengirim tautan untuk membuat password baru.</p>

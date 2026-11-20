@@ -3,6 +3,7 @@ require dirname(__DIR__, 2) . "/includes/config.php";
 require_role("buyer");
 
 $buyerId = (int) user()["id"];
+$sessionCart = sync_buyer_cart($pdo, $buyerId);
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     check_csrf();
@@ -21,7 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         $buyerStmt = $pdo->prepare(
-            "SELECT name, phone, address, province, city, district, village
+            "SELECT name, phone, address, country_code, province, city, district, village
              FROM users WHERE id = ? LIMIT 1"
         );
         $buyerStmt->execute([$buyerId]);
@@ -41,7 +42,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
         if (trim((string) ($buyerAddress["village"] ?? "")) === "" ||
             trim((string) ($buyerAddress["address"] ?? "")) === "") {
-            flash("Lengkapi kelurahan/desa dan alamat jalan pada profil sebelum membuat pesanan.");
+            flash("Lengkapi wilayah lingkungan dan alamat jalan pada profil sebelum membuat pesanan.");
             header("Location: checkout.php");
             exit();
         }
@@ -150,6 +151,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $product["price"],
                     $item["subtotal"],
                 ]);
+            }
+
+            if (($draft["source"] ?? "") === "cart") {
+                $updateCartStmt = $pdo->prepare(
+                    "UPDATE buyer_cart_items SET quantity = ? WHERE buyer_id = ? AND product_id = ?"
+                );
+                $deleteCartStmt = $pdo->prepare(
+                    "DELETE FROM buyer_cart_items WHERE buyer_id = ? AND product_id = ?"
+                );
+                foreach ($requestedQuantities as $id => $quantity) {
+                    $remaining = (int) ($sessionCart[$id] ?? 0) - $quantity;
+                    if ($remaining > 0) {
+                        $updateCartStmt->execute([$remaining, $buyerId, $id]);
+                    } else {
+                        $deleteCartStmt->execute([$buyerId, $id]);
+                    }
+                }
             }
 
             $pdo->commit();
@@ -305,7 +323,7 @@ foreach ($requestedQuantities as $id => $quantity) {
 }
 
 $buyerStmt = $pdo->prepare(
-    "SELECT name, phone, address, province, city, district, village
+    "SELECT name, phone, address, country_code, province, city, district, village
      FROM users WHERE id = ? LIMIT 1"
 );
 $buyerStmt->execute([$buyerId]);
@@ -325,7 +343,7 @@ try {
     $addressErrors[] = $e->getMessage();
 }
 if (trim((string) ($buyerAddress["village"] ?? "")) === "") {
-    $addressErrors[] = "Lengkapi kelurahan/desa pada alamat akun.";
+    $addressErrors[] = "Lengkapi wilayah lingkungan pada alamat akun.";
 }
 if (trim((string) ($buyerAddress["address"] ?? "")) === "") {
     $addressErrors[] = "Lengkapi alamat jalan pada alamat akun.";
@@ -397,12 +415,12 @@ $orderTotal = $productTotal + $shippingFee;
 <main>
     <?php show_flash(); ?>
     <div class="checkout-page-header">
-        <h1 class="checkout-title">Checkout</h1>
-        <a class="checkout-back" href="<?= e(app_url($draft["source"] === "cart" ? "pages/buyer/cart.php" : "pages/buyer/shop.php")) ?>">← Kembali</a>
+        <h1 class="checkout-title"><?= app_language() === "en" ? "Checkout" : "Checkout" ?></h1>
+        <a class="checkout-back" href="<?= e(app_url($draft["source"] === "cart" ? "pages/buyer/cart.php" : "pages/buyer/shop.php")) ?>">← <?= app_language() === "en" ? "Back" : "Kembali" ?></a>
     </div>
 
     <section class="panel checkout-section address-section">
-        <div class="address-heading"><span aria-hidden="true">📍</span> Alamat Pengiriman</div>
+        <div class="address-heading"><span aria-hidden="true">📍</span> <?= app_language() === "en" ? "Shipping Address" : "Alamat Pengiriman" ?></div>
         <div class="address-content">
             <div class="address-contact">
                 <?= e($buyerAddress["name"]) ?><br>
@@ -413,7 +431,8 @@ $orderTotal = $productTotal + $shippingFee;
                 <?= e($buyerAddress["village"] ?: "Kelurahan/desa belum dipilih") ?>,
                 <?= e($buyerAddress["district"] ?: "Kecamatan belum dipilih") ?>,
                 <?= e($buyerAddress["city"] ?: "Kota/kabupaten belum dipilih") ?>,
-                <?= e($buyerAddress["province"] ?: "Provinsi belum dipilih") ?>
+                <?= e($buyerAddress["province"] ?: "Provinsi/negara bagian belum dipilih") ?>,
+                <?= e(shipping_country_options()[$buyerAddress["country_code"]] ?? "Negara belum dipilih") ?>
             </div>
             <a class="address-edit" href="<?= e(app_url("pages/auth/profile.php?section=address")) ?>">Ubah</a>
         </div>
@@ -427,9 +446,9 @@ $orderTotal = $productTotal + $shippingFee;
     </section>
 
     <section class="panel checkout-section">
-        <h2>Produk Dipesan</h2>
+        <h2><?= app_language() === "en" ? "Ordered Products" : "Produk Dipesan" ?></h2>
         <div class="checkout-product-head">
-            <span>Produk</span><span>Harga Satuan</span><span>Jumlah</span><span style="text-align:right;">Subtotal Produk</span>
+            <span><?= app_language() === "en" ? "Product" : "Produk" ?></span><span><?= app_language() === "en" ? "Unit Price" : "Harga Satuan" ?></span><span><?= app_language() === "en" ? "Quantity" : "Jumlah" ?></span><span style="text-align:right;"><?= app_language() === "en" ? "Product Subtotal" : "Subtotal Produk" ?></span>
         </div>
         <?php foreach ($items as $item): ?>
             <div class="checkout-product-row">
@@ -442,9 +461,9 @@ $orderTotal = $productTotal + $shippingFee;
                         <?php endif; ?>
                     </div>
                     <div>
-                        <span class="checkout-product-name"><?= e($item["product"]["name"]) ?></span>
+                        <span class="checkout-product-name"><?= e(app_language() === "en" && !empty($item["product"]["name_en"]) ? $item["product"]["name_en"] : $item["product"]["name"]) ?></span>
                         <?php if (!empty($item["product"]["description"])): ?>
-                            <span class="checkout-product-description"><?= e($item["product"]["description"]) ?></span>
+                            <span class="checkout-product-description"><?= e(app_language() === "en" && !empty($item["product"]["description_en"]) ? $item["product"]["description_en"] : $item["product"]["description"]) ?></span>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -459,7 +478,7 @@ $orderTotal = $productTotal + $shippingFee;
         <input type="hidden" name="csrf" value="<?= csrf() ?>">
         <input type="hidden" name="intent" value="place_order">
         <section class="panel checkout-section">
-            <h2>Pilih Metode Pembayaran</h2>
+            <h2><?= app_language() === "en" ? "Choose Payment Method" : "Pilih Metode Pembayaran" ?></h2>
             <div class="checkout-payment-options">
                 <label class="checkout-payment-option">
                     <input type="radio" name="payment_method" value="qris" required>
@@ -488,7 +507,7 @@ $orderTotal = $productTotal + $shippingFee;
                         <?php if ($shippingArea === "free_zone"): ?>
                             Gratis
                         <?php elseif ($shippingArea !== null): ?>
-                            <?= rupiah($shippingFee) ?>
+                            <?= e(shipping_area_label($shippingArea)) ?> — <?= rupiah($shippingFee) ?>
                         <?php else: ?>
                             Menunggu alamat lengkap
                         <?php endif; ?>

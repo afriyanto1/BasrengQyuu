@@ -86,14 +86,14 @@ $unread_count = count(array_filter(
     <div class="notifications-container">
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px;">
             <div>
-                <h1 style="margin: 0 0 6px; font-size: 24px; color: #0f172a;">Notifikasi</h1>
-                <p class="muted" style="margin: 0;">Pembaruan pembayaran dan pengiriman pesanan Anda.</p>
+                <h1 style="margin: 0 0 6px; font-size: 24px; color: #0f172a;"><?= e(t("Notifikasi")) ?></h1>
+                <p class="muted" style="margin: 0;"><?= e(app_language() === "en" ? "Updates on your order payment and shipping." : "Pembaruan pembayaran dan pengiriman pesanan Anda.") ?></p>
             </div>
             <?php if ($unread_count > 0): ?>
                 <form method="post">
                     <input type="hidden" name="csrf" value="<?= csrf() ?>">
                     <input type="hidden" name="action" value="mark_all_read">
-                    <button class="btn" type="submit" style="margin: 0; white-space: nowrap;">Tandai Dibaca</button>
+                    <button class="btn" type="submit" style="margin: 0; white-space: nowrap;"><?= e(app_language() === "en" ? "Mark as Read" : "Tandai Dibaca") ?></button>
                 </form>
             <?php endif; ?>
         </div>
@@ -113,7 +113,7 @@ $unread_count = count(array_filter(
                         <?= e($notification["created_at"]) ?>
                     </time>
                 </div>
-                <a class="notification-link" href="<?= e($target) ?>">Lihat pesanan</a>
+                <a class="notification-link" href="<?= e($target) ?>"><?= e(app_language() === "en" ? "View order" : "Lihat pesanan") ?></a>
             </article>
         <?php endforeach; ?>
 

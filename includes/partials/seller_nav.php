@@ -24,6 +24,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <div class="profile-menu-dropdown">
                 <a href="../auth/profile.php?section=address">Ubah alamat</a>
                 <a href="../auth/profile.php?section=password">Ganti password</a>
+                <div class="profile-language-setting">
+                    <?php include __DIR__ . "/language_switch.php"; ?>
+                </div>
                 <a href="../auth/logout.php" class="profile-menu-logout">Logout</a>
             </div>
         </details>

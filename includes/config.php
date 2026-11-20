@@ -2,10 +2,69 @@
 declare(strict_types=1);
 session_start();
 
+if (isset($_GET["lang"])) {
+    $requested_language = strtolower(trim((string) $_GET["lang"]));
+    if (in_array($requested_language, ["id", "en"], true)) {
+        $_SESSION["app_language"] = $requested_language;
+    }
+}
+
+function app_language(): string
+{
+    return ($_SESSION["app_language"] ?? "id") === "en" ? "en" : "id";
+}
+
+function translate_text(string $text, ?string $language = null): string
+{
+    $language = $language ?? app_language();
+    if ($language !== "en") {
+        return $text;
+    }
+
+    $translations = [
+        "Login" => "Login",
+        "Masuk" => "Login",
+        "Daftar" => "Register",
+        "Pendaftaran" => "Registration",
+        "Keranjang" => "Cart",
+        "Pesanan Saya" => "My Orders",
+        "Notifikasi" => "Notifications",
+        "Data profil" => "Profile",
+        "Ubah alamat" => "Edit address",
+        "Ganti password" => "Change password",
+        "Dashboard" => "Dashboard",
+        "Produk" => "Products",
+        "Bahan Baku" => "Materials",
+        "Pembelian" => "Purchases",
+        "Pesanan" => "Orders",
+        "Pembayaran" => "Payments",
+        "Laporan" => "Reports",
+        "Keranjang Saya" => "My Cart",
+        "Katalog Basreng" => "Basreng Catalog",
+        "Menu" => "Shop",
+        "Pengguna" => "User",
+        "Bahasa" => "Language",
+        "Produk" => "Products",
+        "Harga Satuan" => "Unit Price",
+        "Jumlah" => "Quantity",
+        "Subtotal" => "Subtotal",
+        "Keranjang masih kosong" => "Your cart is still empty",
+        "Lanjut Belanja" => "Continue Shopping",
+        "Mulai Belanja" => "Start Shopping",
+    ];
+
+    return $translations[$text] ?? $text;
+}
+
+function t(string $text): string
+{
+    return translate_text($text);
+}
+
 $host = getenv("DB_HOST") ?: "dropship-db.ctq2e6428ybb.ap-southeast-2.rds.amazonaws.com";
 $db = getenv("DB_NAME") ?: "basreng_pos";
 $user = getenv("DB_USER") ?: "admin";
-$pass = getenv('DB_PASS') ?: ;
+$pass = getenv("DB_PASS") ?: "";
 $port = (int) (getenv("DB_PORT") ?: 3306);
 $sslCa = getenv("DB_SSL_CA");
 if ($sslCa === false || trim($sslCa) === "") {
@@ -162,13 +221,37 @@ function is_free_shipping_location(
             ($district === "mauk" && $village === "jatiwaringin")
         );
 }
+function shipping_country_options(): array
+{
+    return [
+        "ID" => "Indonesia",
+        "SG" => "Singapura",
+        "MY-W" => "Malaysia Barat (Semenanjung)",
+        "MY-E" => "Malaysia Timur (Sabah & Sarawak)",
+        "BN" => "Brunei Darussalam",
+        "TH" => "Thailand",
+        "VN" => "Vietnam",
+        "PH" => "Filipina",
+        "KH" => "Kamboja",
+        "LA" => "Laos",
+        "MM" => "Myanmar",
+    ];
+}
 function shipping_area_for_address(array $address): string
 {
+    $country_code = $address["country_code"] ?? "ID";
+    if (!is_string($country_code) || !array_key_exists($country_code, shipping_country_options())) {
+        throw new InvalidArgumentException("Negara tujuan pengiriman tidak valid.");
+    }
     foreach (["province", "city", "district"] as $field) {
         if (!is_string($address[$field] ?? null) || trim($address[$field]) === "") {
-            throw new InvalidArgumentException("Lengkapi provinsi, kota/kabupaten, dan kecamatan pada alamat akun sebelum checkout.");
+            throw new InvalidArgumentException("Lengkapi wilayah, kota, dan kecamatan pada alamat akun sebelum checkout.");
         }
     }
+    if ($country_code !== "ID") {
+        return $country_code;
+    }
+
     if (is_free_shipping_location(
         $address["province"],
         $address["city"],
@@ -179,41 +262,115 @@ function shipping_area_for_address(array $address): string
     }
 
     $province = normalize_region_name($address["province"]);
-    $city = normalize_region_name($address["city"]);
-    $jabodetabek_cities = [
-        "jakarta pusat",
-        "jakarta utara",
-        "jakarta barat",
-        "jakarta selatan",
-        "jakarta timur",
-        "kepulauan seribu",
-        "bogor",
-        "depok",
-        "bekasi",
+    $province_zones = [
+        "jabodetabek_banten" => ["banten", "dki jakarta", "daerah khusus ibukota jakarta"],
+        "jawa_barat" => ["jawa barat"],
+        "jawa_tengah_diy" => ["jawa tengah", "di yogyakarta", "daerah istimewa yogyakarta"],
+        "jawa_timur" => ["jawa timur"],
+        "bali_nusa_tenggara" => ["bali", "nusa tenggara barat", "nusa tenggara timur"],
+        "sumatera_bagian_selatan" => [
+            "lampung", "sumatera selatan", "bengkulu", "jambi", "kepulauan bangka belitung",
+        ],
+        "sumatera_bagian_utara" => [
+            "sumatera utara", "sumatera barat", "riau", "kepulauan riau", "aceh",
+        ],
+        "kalimantan" => [
+            "kalimantan barat", "kalimantan tengah", "kalimantan selatan",
+            "kalimantan timur", "kalimantan utara",
+        ],
+        "sulawesi" => [
+            "sulawesi selatan", "sulawesi tengah", "sulawesi tenggara",
+            "sulawesi utara", "sulawesi barat", "gorontalo",
+        ],
+        "maluku_papua" => [
+            "maluku", "maluku utara", "papua", "papua barat", "papua selatan",
+            "papua tengah", "papua pegunungan", "papua barat daya",
+        ],
     ];
-    if (
-        (in_array($province, ["dki jakarta", "daerah khusus ibukota jakarta"], true) &&
-            in_array($city, $jabodetabek_cities, true)) ||
-        ($province === "jawa barat" && in_array($city, ["bogor", "depok", "bekasi"], true)) ||
-        ($province === "banten" && in_array($city, ["tangerang", "tangerang selatan"], true))
-    ) {
-        return "jabodetabek";
+    foreach ($province_zones as $zone => $provinces) {
+        if (in_array($province, $provinces, true)) {
+            return $zone;
+        }
     }
 
-    return "outside";
+    throw new InvalidArgumentException("Provinsi tidak termasuk dalam wilayah pengiriman yang tersedia.");
 }
 function calculate_shipping_fee(string $shipping_area): int
 {
-    if (!in_array($shipping_area, ["pickup", "jabodetabek", "outside", "free_zone"], true)) {
+    $fees = [
+        "pickup" => 0,
+        "free_zone" => 0,
+        "jabodetabek" => 10000,
+        "outside" => 50000,
+        "jabodetabek_banten" => 10000,
+        "jawa_barat" => 13000,
+        "jawa_tengah_diy" => 18000,
+        "jawa_timur" => 22000,
+        "bali_nusa_tenggara" => 35000,
+        "sumatera_bagian_selatan" => 25000,
+        "sumatera_bagian_utara" => 35000,
+        "kalimantan" => 45000,
+        "sulawesi" => 50000,
+        "maluku_papua" => 85000,
+        "SG" => 85000,
+        "MY-W" => 90000,
+        "MY-E" => 115000,
+        "BN" => 150000,
+        "TH" => 165000,
+        "VN" => 175000,
+        "PH" => 190000,
+        "KH" => 230000,
+        "LA" => 250000,
+        "MM" => 260000,
+    ];
+    if (!array_key_exists($shipping_area, $fees)) {
         throw new InvalidArgumentException("Wilayah pengiriman tidak valid.");
     }
 
-    return match ($shipping_area) {
-        "jabodetabek" => 25000,
-        "outside" => 50000,
-        "pickup" => 0,
-        "free_zone" => 0,
-    };
+    return $fees[$shipping_area];
+}
+function manual_shipping_area_options(): array
+{
+    return [
+        "pickup" => "Ambil sendiri",
+        "free_zone" => "Wilayah gratis ongkir khusus",
+        "jabodetabek_banten" => "Jabodetabek & Banten",
+        "jawa_barat" => "Jawa Barat",
+        "jawa_tengah_diy" => "Jawa Tengah & DIY",
+        "jawa_timur" => "Jawa Timur",
+        "bali_nusa_tenggara" => "Bali & Nusa Tenggara",
+        "sumatera_bagian_selatan" => "Sumatera Bagian Selatan",
+        "sumatera_bagian_utara" => "Sumatera Bagian Utara",
+        "kalimantan" => "Kalimantan",
+        "sulawesi" => "Sulawesi",
+        "maluku_papua" => "Maluku & Papua",
+    ] + array_diff_key(shipping_country_options(), ["ID" => true]);
+}
+function shipping_area_label(?string $shipping_area): string
+{
+    if ($shipping_area === null) {
+        return "Menunggu konfirmasi ongkir";
+    }
+
+    $labels = [
+        "pickup" => "Ambil sendiri",
+        "free_zone" => "Gratis ongkir wilayah khusus",
+        "jabodetabek" => "Jabodetabek",
+        "outside" => "Luar Jabodetabek",
+        "jabodetabek_banten" => "Jabodetabek & Banten",
+        "jawa_barat" => "Jawa Barat",
+        "jawa_tengah_diy" => "Jawa Tengah & DIY",
+        "jawa_timur" => "Jawa Timur",
+        "bali_nusa_tenggara" => "Bali & Nusa Tenggara",
+        "sumatera_bagian_selatan" => "Sumatera Bagian Selatan",
+        "sumatera_bagian_utara" => "Sumatera Bagian Utara",
+        "kalimantan" => "Kalimantan",
+        "sulawesi" => "Sulawesi",
+        "maluku_papua" => "Maluku & Papua",
+    ];
+
+    $countries = shipping_country_options();
+    return $labels[$shipping_area] ?? $countries[$shipping_area] ?? "Wilayah pengiriman";
 }
 function user(): ?array
 {
@@ -233,6 +390,82 @@ function require_role(string $role): void
         http_response_code(403);
         exit("Akses ditolak.");
     }
+}
+function sync_buyer_cart(PDO $pdo, int $buyerId): array
+{
+    $legacyCart = $_SESSION["buyer_cart"][$buyerId] ?? [];
+    if (!is_array($legacyCart)) {
+        $legacyCart = [];
+    }
+
+    $cart_stmt = $pdo->prepare(
+        "SELECT product_id, quantity FROM buyer_cart_items WHERE buyer_id = ?"
+    );
+    $cart_stmt->execute([$buyerId]);
+    $cart = [];
+    foreach ($cart_stmt->fetchAll() as $item) {
+        $cart[(int) $item["product_id"]] = (int) $item["quantity"];
+    }
+
+    if (
+        !$cart &&
+        $legacyCart &&
+        empty($_SESSION["buyer_cart_database_loaded"][$buyerId])
+    ) {
+        $product_stmt = $pdo->prepare("SELECT id FROM products WHERE id = ?");
+        $insert_stmt = $pdo->prepare(
+            "INSERT INTO buyer_cart_items (buyer_id, product_id, quantity)
+             VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE quantity = VALUES(quantity)"
+        );
+        foreach ($legacyCart as $productId => $quantity) {
+            $productId = filter_var($productId, FILTER_VALIDATE_INT);
+            $quantity = filter_var($quantity, FILTER_VALIDATE_INT);
+            if (!$productId || $quantity === false || $quantity < 1) {
+                continue;
+            }
+            $product_stmt->execute([$productId]);
+            if ($product_stmt->fetchColumn()) {
+                $insert_stmt->execute([$buyerId, $productId, $quantity]);
+                $cart[$productId] = $quantity;
+            }
+        }
+    }
+
+    $_SESSION["buyer_cart"][$buyerId] = $cart;
+    $_SESSION["buyer_cart_database_loaded"][$buyerId] = true;
+
+    return $cart;
+}
+function persist_buyer_cart_item(
+    PDO $pdo,
+    int $buyerId,
+    int $productId,
+    ?int $quantity
+): void {
+    if ($quantity === null) {
+        $stmt = $pdo->prepare(
+            "DELETE FROM buyer_cart_items WHERE buyer_id = ? AND product_id = ?"
+        );
+        $stmt->execute([$buyerId, $productId]);
+        unset($_SESSION["buyer_cart"][$buyerId][$productId]);
+    } else {
+        if ($quantity < 1) {
+            throw new InvalidArgumentException("Jumlah keranjang harus lebih dari nol.");
+        }
+        $stmt = $pdo->prepare(
+            "INSERT INTO buyer_cart_items (buyer_id, product_id, quantity)
+             VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE quantity = VALUES(quantity)"
+        );
+        $stmt->execute([$buyerId, $productId, $quantity]);
+        $_SESSION["buyer_cart"][$buyerId][$productId] = $quantity;
+    }
+
+    if (empty($_SESSION["buyer_cart"][$buyerId])) {
+        unset($_SESSION["buyer_cart"][$buyerId]);
+    }
+    $_SESSION["buyer_cart_database_loaded"][$buyerId] = true;
 }
 function csrf(): string
 {

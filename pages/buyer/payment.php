@@ -20,7 +20,7 @@ if (
 ) {
     try {
         $address_stmt = $pdo->prepare(
-            'SELECT province, city, district, village FROM users WHERE id = ?'
+            'SELECT country_code, province, city, district, village FROM users WHERE id = ?'
         );
         $address_stmt->execute([$o['buyer_id']]);
         $address = $address_stmt->fetch();
@@ -57,6 +57,10 @@ $items = $stmt_items->fetchAll();
 $qr = $pdo->query("SELECT setting_value FROM settings WHERE setting_key='seller_qr_path'")->fetchColumn();
 
 $bca_acc = $pdo->query("SELECT setting_value FROM settings WHERE setting_key='seller_bca_account'")->fetchColumn() ?: '729-522-0732 (a.n. Afri Yanto)';
+$bca_account_number = (string) $bca_acc;
+if (preg_match('/\d(?:[\s-]*\d){4,}/', $bca_account_number, $account_match)) {
+    $bca_account_number = preg_replace('/\D+/', '', $account_match[0]);
+}
 $admin_wa = $pdo->query("SELECT setting_value FROM settings WHERE setting_key='admin_whatsapp'")->fetchColumn() ?: '6282110760086'; // Ubah nomor WA admin Anda
 
 $method = strtoupper($o['payment_method'] ?? 'QRIS');
@@ -125,16 +129,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $method !== 'COD') {
     <base href="<?= e(app_url('pages/buyer/')) ?>">
     <link rel="icon" type="image/svg+xml" href="<?= e(app_favicon_url()) ?>">
     <link rel="stylesheet" href="<?= e(app_url('assets/css/style.css')) ?>?v=<?= (int) filemtime(app_path('assets/css/style.css')) ?>">
+    <style>
+        .payment-copy-row { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; margin-top:12px; }
+        .payment-copy-button { margin:0; padding:7px 12px; font-size:13px; }
+        .payment-copy-status { min-height:1.5em; }
+    </style>
 </head>
 <body>
-<header>
-    <a class="brand" href="shop.php">Basreng Store</a>
-    <nav>
-        <a href="shop.php">Menu</a>
-        <a href="my_orders.php">Pesanan Saya</a>
-        <a href="../auth/logout.php">Logout</a>
-    </nav>
-</header>
+<?php include dirname(__DIR__, 2) . "/includes/partials/buyer_nav.php"; ?>
 <main>
     <div class="panel payment" style="max-width: 650px; margin: 30px auto;">
         <h1>Pembayaran <?=$order_seq_label?></h1>
@@ -153,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $method !== 'COD') {
 
         <p>Subtotal produk: <strong><?=rupiah((float) $o['total'] - (float) $o['shipping_fee'])?></strong></p>
         <?php if (!$shipping_pending): ?>
-            <p>Ongkir: <strong><?= $o['shipping_area'] === 'free_zone' ? 'Gratis (wilayah khusus)' : rupiah($o['shipping_fee']) ?></strong></p>
+            <p>Ongkir: <strong><?= $o['shipping_area'] === 'free_zone' ? 'Gratis (wilayah khusus)' : e(shipping_area_label($o['shipping_area'])) . ' — ' . rupiah($o['shipping_fee']) ?></strong></p>
         <?php endif; ?>
         <h2>Total Tagihan: <?=rupiah($o['total'])?></h2>
         
@@ -180,6 +182,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $method !== 'COD') {
                     <div style="font-size: 20px; font-weight: bold; color: #171c2e; background: #fff; padding: 12px; border: 1px dashed #a0aec0; text-align: center; border-radius: 6px; letter-spacing: 1px;">
                         <?=e($bca_acc)?>
                     </div>
+                    <div class="payment-copy-row">
+                        <button class="btn payment-copy-button" id="copy-bca-account" type="button" data-copy-value="<?= e($bca_account_number) ?>">Salin nomor rekening</button>
+                        <span class="muted payment-copy-status" id="copy-bca-status" role="status" aria-live="polite"></span>
+                    </div>
                 </div>
             <?php elseif($method === 'COD'): ?>
                 <div style="background: #f8f9fc; padding: 16px; border-radius: 6px; border: 1px solid #cbd5e0; margin-top: 10px;">
@@ -190,6 +196,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $method !== 'COD') {
                     <p>Scan QR Code berikut menggunakan aplikasi m-Banking atau e-wallet Anda:</p>
                     <?php if($qr && file_exists(app_path($qr))):?>
                         <img class="qr-preview" src="<?= e(app_url($qr)) ?>" alt="QR pembayaran penjual" style="max-width: 260px; height: auto;">
+                        <div class="payment-copy-row">
+                            <a class="btn payment-copy-button" href="<?= e(app_url($qr)) ?>" download="<?= e(basename($qr)) ?>">Unduh QRIS</a>
+                        </div>
                     <?php else:?>
                         <div class="alert">File QRIS belum ditemukan di direktori uploads.</div>
                     <?php endif;?>
@@ -256,5 +265,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $method !== 'COD') {
         <a class="btn" style="background: #737b8c;" href="my_orders.php">← Lihat Riwayat Pesanan Saya</a>
     </div>
 </main>
+<script>
+    (function () {
+        const copyButton = document.getElementById("copy-bca-account");
+        if (!copyButton) {
+            return;
+        }
+
+        const status = document.getElementById("copy-bca-status");
+
+        function copyFallback(value) {
+            const input = document.createElement("textarea");
+            input.value = value;
+            input.setAttribute("readonly", "");
+            input.style.position = "fixed";
+            input.style.opacity = "0";
+            document.body.appendChild(input);
+            input.select();
+            const copied = document.execCommand("copy");
+            input.remove();
+            if (!copied) {
+                throw new Error("Clipboard tidak tersedia.");
+            }
+        }
+
+        copyButton.addEventListener("click", async function () {
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(copyButton.dataset.copyValue);
+                } else {
+                    copyFallback(copyButton.dataset.copyValue);
+                }
+                status.textContent = "Nomor rekening berhasil disalin.";
+            } catch (error) {
+                status.textContent = "Gagal menyalin nomor rekening. Silakan salin secara manual.";
+            }
+        });
+    })();
+</script>
 </body>
 </html>

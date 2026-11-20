@@ -59,6 +59,7 @@ if (!$validToken && $error === "") {
     <link rel="stylesheet" href="<?= e(app_url('assets/css/style.css')) ?>">
 </head>
 <body class="register-page">
+<?php include dirname(__DIR__, 2) . "/includes/partials/language_switch.php"; ?>
     <main class="register-card">
         <div class="register-topbar">
             <a class="register-back" href="login.php">Kembali ke login</a>

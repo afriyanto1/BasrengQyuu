@@ -219,7 +219,7 @@ if ($export === 'xls') {
                         <td class="text"><?= $excel_escape(date('d/m/Y H:i', strtotime($o['created_at']))) ?></td>
                         <td><?= $excel_escape($products ?: '-') ?></td>
                         <td class="quantity"><?= $total_qty ?></td>
-                        <td class="<?= $o['shipping_area'] === 'free_zone' ? 'text' : 'number' ?>"><?= $o['shipping_area'] === 'free_zone' ? 'Gratis (wilayah khusus)' : number_format((float) $o['shipping_fee'], 2, '.', '') ?></td>
+                        <td class="<?= $o['shipping_area'] === 'free_zone' ? 'text' : 'number' ?>"><?= $o['shipping_area'] === 'free_zone' ? 'Gratis (wilayah khusus)' : $excel_escape(shipping_area_label($o['shipping_area'])) . ' — ' . number_format((float) $o['shipping_fee'], 2, '.', '') ?></td>
                         <td class="number"><?= number_format($revenue, 2, '.', '') ?></td>
                         <td class="number"><?= number_format($allocated_expense, 2, '.', '') ?></td>
                         <td class="number"><?= number_format($is_paid ? $profit : 0, 2, '.', '') ?></td>
@@ -708,7 +708,7 @@ if ($export === 'xls') {
                         <td class="date-cell" style="color: #64748b; font-size: 13px;"><?= date('d/m/Y H:i', strtotime($o['created_at'])) ?></td>
                         <td class="product-cell"><?= e($items_summary ?: '-') ?></td>
                         <td><?= (int) $total_qty ?></td>
-                        <td><?= $o['shipping_area'] === 'free_zone' ? 'Gratis (wilayah khusus)' : rupiah($o['shipping_fee']) ?></td>
+                        <td><?= $o['shipping_area'] === 'free_zone' ? 'Gratis (wilayah khusus)' : e(shipping_area_label($o['shipping_area'])) . ' — ' . rupiah($o['shipping_fee']) ?></td>
                         <td><strong><?= rupiah($o['total']) ?></strong></td>
                         <td><span class="badge-status <?= $is_paid ? 'badge-lunas' : 'badge-belumbayar' ?>"><?=e($payment_status_labels[$o['payment_status']] ?? $o['payment_status'])?></span></td>
                         <td><?=e($order_status_labels[$o['status']] ?? $o['status'])?></td>
