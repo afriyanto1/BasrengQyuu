@@ -125,6 +125,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         .user-edit-field { min-width: 0; }
         .user-edit-field label { display: block; margin: 0 0 6px; color: #475569; font-size: 13px; font-weight: 600; }
         .user-edit-field input, .user-edit-field select { width: 100%; margin: 0; padding: 11px 14px; }
+        .user-edit-field .password-input-group input { padding-right: 52px; }
         .user-edit-hint { display: block; margin-top: 6px; color: #64748b; font-size: 12px; }
         .user-edit-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
         .user-edit-actions .btn { margin: 0; }
@@ -170,12 +171,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 </div>
                 <div class="user-edit-field">
                     <label for="edit-password">Password baru (opsional)</label>
-                    <input id="edit-password" name="password" type="password" minlength="8" autocomplete="new-password">
+                    <div class="password-input-group">
+                        <input id="edit-password" name="password" type="password" minlength="8" autocomplete="new-password">
+                        <button class="password-toggle" id="edit-password-toggle" type="button" aria-label="Tampilkan password baru" aria-controls="edit-password" aria-pressed="false">
+                            <svg id="edit-password-eye" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
                     <small class="user-edit-hint">Kosongkan jika tidak ingin mengganti password.</small>
                 </div>
                 <div class="user-edit-field">
                     <label for="edit-password-confirmation">Konfirmasi password</label>
-                    <input id="edit-password-confirmation" name="password_confirmation" type="password" minlength="8" autocomplete="new-password">
+                    <div class="password-input-group">
+                        <input id="edit-password-confirmation" name="password_confirmation" type="password" minlength="8" autocomplete="new-password">
+                        <button class="password-toggle" id="edit-password-confirmation-toggle" type="button" aria-label="Tampilkan konfirmasi password" aria-controls="edit-password-confirmation" aria-pressed="false">
+                            <svg id="edit-password-confirmation-eye" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="user-edit-actions">
@@ -185,5 +196,24 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         </form>
     </section>
 </main>
+<script>
+    const openEye = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+    const closedEye = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+    [
+        ["edit-password", "edit-password-toggle", "edit-password-eye", "Tampilkan password baru", "Sembunyikan password baru"],
+        ["edit-password-confirmation", "edit-password-confirmation-toggle", "edit-password-confirmation-eye", "Tampilkan konfirmasi password", "Sembunyikan konfirmasi password"]
+    ].forEach(([inputId, toggleId, eyeId, showLabel, hideLabel]) => {
+        const input = document.getElementById(inputId);
+        const toggle = document.getElementById(toggleId);
+        const eye = document.getElementById(eyeId);
+        toggle.addEventListener("click", () => {
+            const isVisible = input.type === "password";
+            input.type = isVisible ? "text" : "password";
+            toggle.setAttribute("aria-pressed", String(isVisible));
+            toggle.setAttribute("aria-label", isVisible ? hideLabel : showLabel);
+            eye.innerHTML = isVisible ? closedEye : openEye;
+        });
+    });
+</script>
 </body>
 </html>

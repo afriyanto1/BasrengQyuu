@@ -188,6 +188,7 @@ $users = $pdo->query(
         .user-form-field { min-width: 0; }
         .user-form-field label { display: block; margin-bottom: 5px; color: #334155; font-weight: 600; }
         .user-form-field input, .user-form-field select { margin: 0; }
+        .user-form-field .password-input-group input { padding-right: 52px; }
         .user-create-actions { display: flex; justify-content: flex-end; gap: 12px; }
         .user-create-actions button { margin: 0; }
         .team-table { width: 100%; border-collapse: collapse; }
@@ -256,11 +257,21 @@ $users = $pdo->query(
                 </div>
                 <div class="user-form-field">
                     <label for="new-password">Password</label>
-                    <input id="new-password" name="password" type="password" minlength="8" autocomplete="new-password" required>
+                    <div class="password-input-group">
+                        <input id="new-password" name="password" type="password" minlength="8" autocomplete="new-password" required>
+                        <button class="password-toggle" id="new-password-toggle" type="button" aria-label="Tampilkan password" aria-controls="new-password" aria-pressed="false">
+                            <svg id="new-password-eye" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="user-form-field">
                     <label for="new-password-confirmation">Konfirmasi Password</label>
-                    <input id="new-password-confirmation" name="password_confirmation" type="password" minlength="8" autocomplete="new-password" required>
+                    <div class="password-input-group">
+                        <input id="new-password-confirmation" name="password_confirmation" type="password" minlength="8" autocomplete="new-password" required>
+                        <button class="password-toggle" id="new-password-confirmation-toggle" type="button" aria-label="Tampilkan konfirmasi password" aria-controls="new-password-confirmation" aria-pressed="false">
+                            <svg id="new-password-confirmation-eye" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="user-create-actions">
@@ -339,6 +350,24 @@ $users = $pdo->query(
         });
         cancelButton.addEventListener("click", function () {
             setCreateMode(false);
+        });
+
+        var openEye = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+        var closedEye = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+        [
+            ["new-password", "new-password-toggle", "new-password-eye", "Tampilkan password", "Sembunyikan password"],
+            ["new-password-confirmation", "new-password-confirmation-toggle", "new-password-confirmation-eye", "Tampilkan konfirmasi password", "Sembunyikan konfirmasi password"]
+        ].forEach(function (item) {
+            var input = document.getElementById(item[0]);
+            var toggle = document.getElementById(item[1]);
+            var eye = document.getElementById(item[2]);
+            toggle.addEventListener("click", function () {
+                var isVisible = input.type === "password";
+                input.type = isVisible ? "text" : "password";
+                toggle.setAttribute("aria-pressed", String(isVisible));
+                toggle.setAttribute("aria-label", isVisible ? item[4] : item[3]);
+                eye.innerHTML = isVisible ? closedEye : openEye;
+            });
         });
     })();
 </script>

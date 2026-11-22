@@ -8,7 +8,7 @@ $unread_notification_count = (int) $unread_notification_stmt->fetchColumn();
 $buyer_cart = sync_buyer_cart($pdo, (int) user()["id"]);
 $buyer_cart_count = is_array($buyer_cart) ? array_sum(array_map("intval", $buyer_cart)) : 0;
 ?>
-<header>
+<header class="buyer-header">
     <a class="brand" href="<?= e(app_url('pages/buyer/shop.php')) ?>"><span class="brand-name"><span class="brand-basreng">Basreng</span><span class="brand-qyuu">Qyuu&nbsp;</span><span class="brand-store">Store</span></span></a>
     <button class="mobile-toggle" type="button" aria-label="Buka navigasi" onclick="this.parentElement.querySelector('nav').classList.toggle('show')">
         ☰

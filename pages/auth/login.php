@@ -5,6 +5,7 @@ if (user()) {
     exit();
 }
 $error = "";
+$login = "";
 $showResendActivation = false;
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     check_csrf();
@@ -20,13 +21,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         header("Retry-After: " . $retry_after);
         $error = "Terlalu banyak percobaan login. Silakan coba lagi setelah beberapa saat.";
     } else {
-        $email = $_POST["email"] ?? "";
+        $login = $_POST["login"] ?? "";
         $password = $_POST["password"] ?? "";
-        $email = is_string($email) ? trim($email) : "";
+        $login = is_string($login) ? trim($login) : "";
         $password = is_string($password) ? $password : "";
 
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE email=? LIMIT 1");
-        $stmt->execute([$email]);
+        $login_by_email = filter_var($login, FILTER_VALIDATE_EMAIL) !== false;
+        $column = $login_by_email ? "email" : "username";
+        $login_value = $login_by_email ? $login : strtolower($login);
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE " . $column . " = ? LIMIT 1");
+        $stmt->execute([$login_value]);
         $u = $stmt->fetch();
         $credentials_valid = $u && password_verify($password, $u["password"]);
         if ($credentials_valid) {
@@ -53,7 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 header("Retry-After: " . $retry_after);
                 $error = "Terlalu banyak percobaan login. Silakan coba lagi setelah beberapa saat.";
             } else {
-                $error = "Email atau password salah.";
+                $error = "Username/email atau password salah.";
             }
         }
     }
@@ -248,8 +252,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     <form method="post">
         <input type="hidden" name="csrf" value="<?= csrf() ?>">
-        <label for="email">Email / Username</label>
-        <input id="email" type="email" name="email" autocomplete="username" placeholder="Alamat email Anda" required>
+        <label for="login">Email / Username</label>
+        <input id="login" type="text" name="login" autocomplete="username" placeholder="Masukkan email atau username" value="<?= e($login) ?>" required>
 
         <label for="passInput">Password</label>
         <div class="input-group">

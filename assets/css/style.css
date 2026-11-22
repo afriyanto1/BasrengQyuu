@@ -78,6 +78,11 @@ header nav {
 }
 
 @media (min-width: 1201px) {
+    header.buyer-header nav {
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
     header.admin-header nav {
         justify-content: flex-end;
         gap: 8px;
@@ -1007,18 +1012,6 @@ td {
         #eef2f8;
 }
 
-.profile-page header.profile-nav {
-    margin: 0;
-}
-
-.profile-page header.profile-nav nav a.profile-logout {
-    color: #f87171;
-}
-
-.profile-page header.profile-nav nav a.profile-logout:hover {
-    color: #ffffff;
-}
-
 .profile-page main.profile-card {
     width: calc(100% - 40px);
     max-width: 900px;
@@ -1246,6 +1239,40 @@ td {
 }
 
 /* --- MEDIA QUERY MOBILE (HP) --- */
+@media (max-width: 1200px) {
+    header nav .profile-menu-toggle {
+        width: 100%;
+    }
+
+    header nav .profile-menu-dropdown {
+        position: static;
+        width: 100%;
+        margin: 4px 0 8px;
+        border-color: #334155;
+        background: #1e293b;
+        box-shadow: none;
+    }
+
+    header nav .profile-menu-dropdown .language-switch label {
+        color: #ffffff;
+    }
+
+    header nav .profile-menu-dropdown a,
+    header nav .profile-menu-dropdown a.profile-menu-logout {
+        color: #e2e8f0;
+    }
+
+    header nav .profile-menu-dropdown a:hover {
+        background: #334155;
+        color: #ffffff;
+    }
+
+    header nav .profile-menu-dropdown a.profile-menu-logout,
+    header nav .profile-menu-dropdown a.profile-menu-logout:hover {
+        color: #f87171;
+    }
+}
+
 @media (min-width: 769px) and (max-width: 1200px) {
     header {
         flex-wrap: wrap;
@@ -1359,34 +1386,6 @@ td {
         padding: 10px;
     }
 
-    header nav .profile-menu-dropdown {
-        position: static;
-        width: 100%;
-        margin: 4px 0 8px;
-        border-color: #334155;
-        background: #1e293b;
-        box-shadow: none;
-    }
-
-    header nav .profile-menu-dropdown .language-switch label {
-        color: #ffffff;
-    }
-
-    header nav .profile-menu-dropdown a,
-    header nav .profile-menu-dropdown a.profile-menu-logout {
-        color: #e2e8f0;
-    }
-
-    header nav .profile-menu-dropdown a:hover {
-        background: #334155;
-        color: #ffffff;
-    }
-
-    header nav .profile-menu-dropdown a.profile-menu-logout,
-    header nav .profile-menu-dropdown a.profile-menu-logout:hover {
-        color: #f87171;
-    }
-
     header nav a {
         width: 100%;
         padding: 10px;
@@ -1403,10 +1402,6 @@ td {
 }
 
 @media (max-width: 600px) {
-    .profile-page header.profile-nav {
-        margin: 0;
-    }
-
     .profile-page main.profile-card {
         width: calc(100% - 24px);
         margin: 20px auto;

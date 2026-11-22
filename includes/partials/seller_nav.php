@@ -8,22 +8,22 @@ $current_page = basename($_SERVER['PHP_SELF']);
 $is_owner = is_owner();
 ?>
 <header>
-    <a class="brand" href="seller.php">
+    <a class="brand" href="<?= e(app_url('pages/seller/seller.php')) ?>">
         <span class="brand-name"><span class="brand-basreng">Basreng</span><span class="brand-qyuu">Qyuu&nbsp;</span><span class="brand-store">Store</span></span>
     </a>
     <button class="mobile-toggle" type="button" aria-label="Buka navigasi" onclick="this.parentElement.querySelector('nav').classList.toggle('show')">
         ☰
     </button>
     <nav>
-        <a href="seller.php" class="<?= $current_page === 'seller.php' ? 'active' : '' ?>">Dashboard</a>
-        <a href="products.php" class="<?= $current_page === 'products.php' || $current_page === 'edit_product.php' ? 'active' : '' ?>">Produk</a>
-        <a href="materials.php" class="<?= $current_page === 'materials.php' || $current_page === 'edit_material.php' ? 'active' : '' ?>">Bahan Baku</a>
-        <a href="purchases.php" class="<?= $current_page === 'purchases.php' ? 'active' : '' ?>">Pembelian</a>
-        <a href="orders.php" class="<?= $current_page === 'orders.php' ? 'active' : '' ?>">Pesanan</a>
+        <a href="<?= e(app_url('pages/seller/seller.php')) ?>" class="<?= $current_page === 'seller.php' ? 'active' : '' ?>">Dashboard</a>
+        <a href="<?= e(app_url('pages/seller/products.php')) ?>" class="<?= $current_page === 'products.php' || $current_page === 'edit_product.php' ? 'active' : '' ?>">Produk</a>
+        <a href="<?= e(app_url('pages/seller/materials.php')) ?>" class="<?= $current_page === 'materials.php' || $current_page === 'edit_material.php' ? 'active' : '' ?>">Bahan Baku</a>
+        <a href="<?= e(app_url('pages/seller/purchases.php')) ?>" class="<?= $current_page === 'purchases.php' ? 'active' : '' ?>">Pembelian</a>
+        <a href="<?= e(app_url('pages/seller/orders.php')) ?>" class="<?= $current_page === 'orders.php' ? 'active' : '' ?>">Pesanan</a>
         <?php if ($is_owner): ?>
-            <a href="settings.php" class="<?= $current_page === 'settings.php' ? 'active' : '' ?>">Pembayaran</a>
-            <a href="reports.php" class="<?= $current_page === 'reports.php' ? 'active' : '' ?>">Laporan</a>
-            <a href="team.php" class="<?= in_array($current_page, ['team.php', 'edit_user.php'], true) ? 'active' : '' ?>">Pengguna</a>
+            <a href="<?= e(app_url('pages/seller/settings.php')) ?>" class="<?= $current_page === 'settings.php' ? 'active' : '' ?>">Pembayaran</a>
+            <a href="<?= e(app_url('pages/seller/reports.php')) ?>" class="<?= $current_page === 'reports.php' ? 'active' : '' ?>">Laporan</a>
+            <a href="<?= e(app_url('pages/seller/team.php')) ?>" class="<?= in_array($current_page, ['team.php', 'edit_user.php'], true) ? 'active' : '' ?>">Pengguna</a>
         <?php endif; ?>
         <details class="profile-menu <?= $current_page === 'profile.php' ? 'active' : '' ?>">
             <summary class="profile-menu-toggle" aria-label="Buka menu akun">
@@ -32,14 +32,14 @@ $is_owner = is_owner();
             </summary>
             <div class="profile-menu-dropdown">
                 <?php if ($is_owner): ?>
-                    <a href="../auth/profile.php?section=profile">Data profil</a>
-                    <a href="../auth/profile.php?section=address">Ubah alamat</a>
+                    <a href="<?= e(app_url('pages/auth/profile.php?section=profile')) ?>">Data profil</a>
+                    <a href="<?= e(app_url('pages/auth/profile.php?section=address')) ?>">Ubah alamat</a>
                 <?php endif; ?>
-                <a href="../auth/profile.php?section=password">Ganti password</a>
+                <a href="<?= e(app_url('pages/auth/profile.php?section=password')) ?>">Ganti password</a>
                 <div class="profile-language-setting">
                     <?php include __DIR__ . "/language_switch.php"; ?>
                 </div>
-                <a href="../auth/logout.php" class="profile-menu-logout">Logout</a>
+                <a href="<?= e(app_url('pages/auth/logout.php')) ?>" class="profile-menu-logout">Logout</a>
             </div>
         </details>
     </nav>

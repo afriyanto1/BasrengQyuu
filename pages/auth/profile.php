@@ -285,31 +285,10 @@ $sectionTitles = [
   <body class="profile-page">
     <?php if ($account["role"] === "buyer"): ?>
       <?php include dirname(__DIR__, 2) . "/includes/partials/buyer_nav.php"; ?>
+    <?php elseif ($account["role"] === "cashier"): ?>
+      <?php include dirname(__DIR__, 2) . "/includes/partials/cashier_nav.php"; ?>
     <?php else: ?>
-      <header class="profile-nav">
-        <a class="brand" href="<?= e($homeUrl) ?>"><span class="brand-name"><span class="brand-basreng">Basreng</span><span class="brand-qyuu">Qyuu&nbsp;</span><span class="brand-store">Store</span></span></a>
-        <button class="mobile-toggle" type="button" aria-label="Buka navigasi" onclick="this.parentElement.querySelector('nav').classList.toggle('show')">☰</button>
-        <nav>
-          <a href="<?= e($homeUrl) ?>">Kembali ke menu</a>
-          <details class="profile-menu">
-            <summary class="profile-menu-toggle" aria-label="Buka menu akun">
-              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"></path></svg>
-              <span><?= e(user()["name"] ?? "Pengguna") ?></span>
-            </summary>
-            <div class="profile-menu-dropdown">
-              <?php if (is_owner()): ?>
-                <a href="<?= e(app_url('pages/auth/profile.php?section=profile')) ?>">Data profil</a>
-                <a href="<?= e(app_url('pages/auth/profile.php?section=address')) ?>">Ubah alamat</a>
-              <?php endif; ?>
-              <a href="<?= e(app_url('pages/auth/profile.php?section=password')) ?>">Ganti password</a>
-              <div class="profile-language-setting">
-                <?php include dirname(__DIR__, 2) . "/includes/partials/language_switch.php"; ?>
-              </div>
-              <a href="<?= e(app_url('pages/auth/logout.php')) ?>" class="profile-menu-logout">Logout</a>
-            </div>
-          </details>
-        </nav>
-      </header>
+      <?php include dirname(__DIR__, 2) . "/includes/partials/seller_nav.php"; ?>
     <?php endif; ?>
 
     <main class="profile-card">
