@@ -199,7 +199,6 @@ $rows = $s->fetchAll();
     <div class="order-container">
         <div style="margin-bottom: 24px;">
             <h1 style="margin: 0 0 6px 0; font-size: 24px; color: #0f172a;"><?= e(t("Riwayat Pesanan")) ?></h1>
-            <p class="muted" style="margin: 0; font-size: 14px;"><?= e(app_language() === "en" ? "Track your order status and make payments or confirm your orders." : "Pantau status pesanan dan lakukan pembayaran atau konfirmasi pesanan Anda.") ?></p>
         </div>
 
         <?php foreach ($rows as $o): ?>

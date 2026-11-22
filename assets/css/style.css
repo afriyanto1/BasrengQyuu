@@ -37,6 +37,7 @@ header a.brand {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-shrink: 0;
 }
 
 .brand-name {
@@ -70,7 +71,30 @@ header a.brand {
 header nav {
     display: flex;
     align-items: center;
-    gap: 18px;
+    flex: 1;
+    justify-content: space-between;
+    gap: 8px;
+    margin-left: 24px;
+}
+
+@media (min-width: 1201px) {
+    header.admin-header nav {
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    header.admin-header nav .profile-menu {
+        margin-left: 0;
+    }
+
+    header.cashier-header nav {
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    header.cashier-header nav .profile-menu {
+        margin-left: 0;
+    }
 }
 
 header nav a {
@@ -79,8 +103,9 @@ header nav a {
     font-weight: 500;
     font-size: 14px;
     transition: all 0.2s;
-    padding: 6px 10px;
+    padding: 6px 8px;
     border-radius: 6px;
+    white-space: nowrap;
 }
 
 header nav a:hover, header nav a.active {
@@ -105,6 +130,7 @@ header nav a:hover, header nav a.active {
 
 .profile-menu {
     position: relative;
+    flex-shrink: 0;
 }
 
 .profile-menu summary {
@@ -126,6 +152,7 @@ header nav a:hover, header nav a.active {
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
+    white-space: nowrap;
     transition: background 0.2s, color 0.2s;
 }
 
@@ -1165,6 +1192,27 @@ td {
     margin: 4px 0 0;
 }
 
+.profile-cancel {
+    display: flex;
+    width: 100%;
+    min-height: 48px;
+    margin-top: 10px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #475569;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.profile-cancel:hover {
+    border-color: #94a3b8;
+    background: #f8fafc;
+}
+
 /* --- PAGINATION STYLING --- */
 .pagination {
     display: flex;
@@ -1198,6 +1246,63 @@ td {
 }
 
 /* --- MEDIA QUERY MOBILE (HP) --- */
+@media (min-width: 769px) and (max-width: 1200px) {
+    header {
+        flex-wrap: wrap;
+    }
+
+    .mobile-toggle {
+        display: block;
+        position: relative;
+        z-index: 2;
+    }
+
+    header a.brand {
+        position: relative;
+        z-index: 2;
+    }
+
+    header nav {
+        display: none;
+        flex: 0 0 100%;
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 4px;
+        margin: 12px 0 0;
+        padding-top: 10px;
+        border-top: 1px solid #334155;
+    }
+
+    header nav.show {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        display: flex;
+        z-index: 1;
+        width: auto;
+        height: 100vh;
+        height: 100dvh;
+        margin: 0;
+        padding: 76px 16px 16px;
+        overflow-y: auto;
+        background: #0f172a;
+    }
+
+    header nav .profile-menu,
+    header nav a {
+        width: 100%;
+    }
+
+    header nav .profile-menu-toggle,
+    header nav a {
+        padding: 10px;
+    }
+}
+
 @media (max-width: 768px) {
     header {
         flex-wrap: wrap;
@@ -1217,11 +1322,13 @@ td {
     
     header nav {
         display: none;
+        flex: 0 0 100%;
         width: 100%;
         flex-direction: column;
         align-items: flex-start;
+        justify-content: flex-start;
         gap: 4px;
-        margin-top: 12px;
+        margin: 12px 0 0;
         padding-top: 10px;
         border-top: 1px solid #334155;
     }

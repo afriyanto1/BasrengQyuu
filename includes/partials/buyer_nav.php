@@ -43,3 +43,4 @@ $buyer_cart_count = is_array($buyer_cart) ? array_sum(array_map("intval", $buyer
         </details>
     </nav>
 </header>
+<script src="<?= e(app_url('assets/js/idle-logout.js')) ?>" data-logout-url="<?= e(app_url('pages/auth/logout.php')) ?>" data-activity-url="<?= e(app_url('pages/api/session_activity.php')) ?>" defer></script>

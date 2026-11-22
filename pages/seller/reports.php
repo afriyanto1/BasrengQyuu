@@ -1,6 +1,6 @@
 <?php
 require dirname(__DIR__, 2) . "/includes/config.php";
-require_role('seller');
+require_role('owner');
 
 // Tangkap parameter filter
 $date_from   = trim($_GET['date_from'] ?? date('Y-m-01'));
@@ -562,7 +562,6 @@ if ($export === 'xls') {
     <div class="page-header">
         <div>
             <h1 style="margin: 0 0 4px 0; font-size: 24px; color: #0f172a;">Laporan Pesanan</h1>
-            <p class="muted" style="margin: 0; font-size: 14px;">Kelola dan pantau rekapitulasi pesanan pelanggan.</p>
             <p class="print-only" style="margin: 4px 0 0; font-size: 12px;">Periode: <?= e(date('d/m/Y', strtotime($date_from))) ?> - <?= e(date('d/m/Y', strtotime($date_to))) ?></p>
         </div>
 

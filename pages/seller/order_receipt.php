@@ -234,5 +234,6 @@ $shippingArea = shipping_area_label($order["shipping_area"]);
             Referensi pesanan ini bukan nomor resi resmi kurir. Isi kurir dan nomor resi setelah pengiriman didaftarkan.
         </div>
     </main>
+    <script src="<?= e(app_url('assets/js/idle-logout.js')) ?>" data-logout-url="<?= e(app_url('pages/auth/logout.php')) ?>" data-activity-url="<?= e(app_url('pages/api/session_activity.php')) ?>" defer></script>
 </body>
 </html>

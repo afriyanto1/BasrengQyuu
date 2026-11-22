@@ -292,7 +292,6 @@ $hist = $stmt_hist->fetchAll();
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
             <div>
                 <h1 style="margin: 0 0 6px 0;">Pencatatan Pembelian Barang</h1>
-                <p class="muted" style="margin: 0;">Catat jumlah barang/bahan baku yang dibeli dan pantau riwayatnya.</p>
             </div>
             <a href="purchases.php?action=create" class="btn btn-primary" style="height: 42px; line-height: 40px; padding: 0 20px; border-radius: 8px; font-weight: 600; text-decoration: none;">+ Catat Pembelian</a>
         </div>

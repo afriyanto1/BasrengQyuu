@@ -42,6 +42,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     "email" => $u["email"],
                     "role" => $u["role"],
                 ];
+                $_SESSION["last_activity"] = time();
                 header("Location: " . app_url("index.php"));
                 exit();
             }

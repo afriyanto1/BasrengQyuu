@@ -17,10 +17,20 @@ if (!$account) {
 }
 
 $error = "";
-$sections = ["profile", "address", "password"];
-$section = is_string($_GET["section"] ?? null) && in_array($_GET["section"], $sections, true)
-    ? $_GET["section"]
-    : "profile";
+$is_restricted_account = in_array($account["role"], ["admin", "cashier"], true);
+$sections = $is_restricted_account ? ["password"] : ["profile", "address", "password"];
+$requestedSection = $_GET["section"] ?? null;
+$section = is_string($requestedSection) && in_array($requestedSection, $sections, true)
+    ? $requestedSection
+    : ($is_restricted_account ? "password" : "profile");
+if (
+    $is_restricted_account &&
+    is_string($requestedSection) &&
+    in_array($requestedSection, ["profile", "address"], true)
+) {
+    header("Location: " . app_url("pages/auth/profile.php?section=password"));
+    exit();
+}
 $formValues = [
     "name" => $account["name"],
     "email" => $account["email"],
@@ -253,9 +263,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 
-$homeUrl = $account["role"] === "seller"
-    ? app_url("pages/seller/seller.php")
-    : app_url("pages/buyer/shop.php");
+$homeUrl = is_cashier()
+    ? app_url("pages/cashier/shop.php")
+    : (is_seller()
+        ? app_url("pages/seller/seller.php")
+        : app_url("pages/buyer/shop.php"));
 $sectionTitles = [
     "profile" => "Data profil",
     "address" => "Ubah alamat",
@@ -285,8 +297,10 @@ $sectionTitles = [
               <span><?= e(user()["name"] ?? "Pengguna") ?></span>
             </summary>
             <div class="profile-menu-dropdown">
-              <a href="<?= e(app_url('pages/auth/profile.php?section=profile')) ?>">Data profil</a>
-              <a href="<?= e(app_url('pages/auth/profile.php?section=address')) ?>">Ubah alamat</a>
+              <?php if (is_owner()): ?>
+                <a href="<?= e(app_url('pages/auth/profile.php?section=profile')) ?>">Data profil</a>
+                <a href="<?= e(app_url('pages/auth/profile.php?section=address')) ?>">Ubah alamat</a>
+              <?php endif; ?>
               <a href="<?= e(app_url('pages/auth/profile.php?section=password')) ?>">Ganti password</a>
               <div class="profile-language-setting">
                 <?php include dirname(__DIR__, 2) . "/includes/partials/language_switch.php"; ?>
@@ -462,6 +476,7 @@ $sectionTitles = [
             Simpan perubahan
           <?php endif; ?>
         </button>
+        <a class="profile-cancel" href="<?= e($homeUrl) ?>"><?= e(t("Batal")) ?></a>
       </form>
     </main>
 

@@ -61,7 +61,7 @@ if ($productIds) {
     $products = $stmt->fetchAll();
 }
 
-$cartCount = array_sum(array_map("intval", $cart));
+
 ?><!doctype html>
 <html lang="id">
 <head>
@@ -99,7 +99,7 @@ $cartCount = array_sum(array_map("intval", $cart));
         .cart-checkout:hover { background:#1d4ed8; }
         .cart-checkout:disabled { background:#cbd5e1; cursor:not-allowed; }
         .empty-cart { padding:54px 20px; text-align:center; }
-        .empty-cart-icon { display:grid; place-items:center; width:70px; height:70px; margin:0 auto 15px; border-radius:50%; background:#eff6ff; font-size:32px; }
+        .empty-cart-icon { display:block; width:48px; height:48px; margin:0 auto 15px; }
         @media (max-width:700px) {
             .cart-table thead { display:none; }
             .cart-table, .cart-table tbody, .cart-table tr, .cart-table td { display:block; width:100%; }
@@ -138,7 +138,6 @@ $cartCount = array_sum(array_map("intval", $cart));
     <div class="cart-heading">
         <div>
             <h1><?= e(t("Keranjang Saya")) ?></h1>
-            <p class="muted"><span id="cart-saved-count"><?= $cartCount ?></span> <?= e(app_language() === "en" ? "items saved. Choose items you want to buy now." : "barang tersimpan. Pilih barang yang ingin dibeli sekarang.") ?></p>
         </div>
         <a href="shop.php" class="cart-continue">← <?= e(t("Lanjut Belanja")) ?></a>
     </div>
@@ -230,7 +229,7 @@ $cartCount = array_sum(array_map("intval", $cart));
         </section>
     <?php else: ?>
         <section class="cart-card empty-cart">
-            <div class="empty-cart-icon">🛒</div>
+            <img class="empty-cart-icon" src="<?= e(app_url('assets/images/cart-add.svg')) ?>?v=<?= (int) filemtime(app_path('assets/images/cart-add.svg')) ?>" alt="" aria-hidden="true">
             <h2 style="margin:0 0 6px;"><?= e(t("Keranjang masih kosong")) ?></h2>
             <p class="muted" style="margin:0 0 20px;"><?= e(app_language() === "en" ? "Add products from the shop, then choose which ones to checkout." : "Tambahkan produk dari menu, lalu pilih mana yang ingin di-checkout.") ?></p>
             <a href="shop.php" class="btn" style="display:inline-block; margin:0; padding:12px 20px; background:#2563eb; border-radius:9px; color:#fff; text-decoration:none; font-weight:700;"><?= e(t("Mulai Belanja")) ?></a>
@@ -243,7 +242,6 @@ $cartCount = array_sum(array_map("intval", $cart));
         const rows = Array.from(document.querySelectorAll(".cart-row"));
         const countLabel = document.getElementById("cart-selected-count");
         const totalLabel = document.getElementById("cart-selected-total");
-        const savedCountLabel = document.getElementById("cart-saved-count");
         const checkoutButton = document.getElementById("cart-checkout-button");
         const quantityForm = document.getElementById("cart-quantity-form");
         let pendingUpdates = 0;
@@ -255,7 +253,6 @@ $cartCount = array_sum(array_map("intval", $cart));
 
         function updateSummary() {
             let count = 0;
-            let savedCount = 0;
             let total = 0;
             rows.forEach(function (row) {
                 const checkbox = row.querySelector(".cart-selection");
@@ -263,7 +260,6 @@ $cartCount = array_sum(array_map("intval", $cart));
                 const subtotal = row.querySelector(".cart-subtotal");
                 const amount = Number(quantity.value) || 0;
                 const lineTotal = Number(row.dataset.price) * amount;
-                savedCount += amount;
                 subtotal.textContent = currency.format(lineTotal);
                 if (checkbox.checked && !checkbox.disabled) {
                     count += amount;
@@ -271,7 +267,6 @@ $cartCount = array_sum(array_map("intval", $cart));
                 }
             });
             countLabel.textContent = count + " barang dipilih";
-            savedCountLabel.textContent = String(savedCount);
             totalLabel.textContent = currency.format(total);
             checkoutButton.disabled = count === 0 || pendingUpdates > 0;
         }

@@ -11,7 +11,7 @@ CREATE TABLE users (
  gender ENUM('male','female','prefer_not_to_say') NULL,
  email_verified_at DATETIME NULL,
  password VARCHAR(255) NOT NULL,
- role ENUM('seller','buyer') NOT NULL DEFAULT 'buyer',
+ role ENUM('owner','admin','cashier','buyer') NOT NULL DEFAULT 'buyer',
  country_code VARCHAR(5) NOT NULL DEFAULT 'ID',
  province VARCHAR(120) NULL,
  city VARCHAR(120) NULL,
@@ -143,4 +143,4 @@ INSERT INTO settings(setting_key,setting_value) VALUES
 -- Password: password
 -- Buat hash menggunakan PHP: php -r "echo password_hash('password', PASSWORD_DEFAULT);"
 INSERT INTO users(name,username,email,password,role,email_verified_at) VALUES
-('Administrator','admin','admin@basreng.local','$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi','seller',UTC_TIMESTAMP());
+('Administrator','admin','admin@basreng.local','$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi','owner',UTC_TIMESTAMP());

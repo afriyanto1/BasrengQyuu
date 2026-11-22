@@ -2,11 +2,13 @@
 require dirname(__DIR__, 2) . "/includes/config.php"; 
 require_role('seller');
 
-// Hitung data statistik dashboard
-$total_revenue = (float)$pdo->query("SELECT COALESCE(SUM(total),0) FROM orders")->fetchColumn();
-$paid_revenue = (float)$pdo->query("SELECT COALESCE(SUM(total),0) FROM orders WHERE payment_status = 'paid'")->fetchColumn();
-$purchase = (float)$pdo->query("SELECT COALESCE(SUM(total),0) FROM purchases")->fetchColumn();
-$profit = $paid_revenue - $purchase;
+$is_owner = is_owner();
+if ($is_owner) {
+    $total_revenue = (float)$pdo->query("SELECT COALESCE(SUM(total),0) FROM orders")->fetchColumn();
+    $paid_revenue = (float)$pdo->query("SELECT COALESCE(SUM(total),0) FROM orders WHERE payment_status = 'paid'")->fetchColumn();
+    $purchase = (float)$pdo->query("SELECT COALESCE(SUM(total),0) FROM purchases")->fetchColumn();
+    $profit = $paid_revenue - $purchase;
+}
 
 // Hitung pesanan aktif (status belum selesai/dibatalkan)
 $active_orders = (int)$pdo->query("SELECT COUNT(*) FROM orders WHERE status NOT IN ('completed', 'returned')")->fetchColumn();
@@ -195,8 +197,9 @@ $recent_purchases = $pdo->query("SELECT p.*, m.name, m.unit FROM purchases p JOI
 
     <?php show_flash();?>
 
-    <!-- 4 Kartu Statistik Atas -->
+    <!-- Kartu Statistik Atas -->
     <div class="dash-stats-grid">
+        <?php if ($is_owner): ?>
         <div class="dash-card blue">
             <div>
                 <div class="dash-card-title">Total Pendapatan</div>
@@ -212,15 +215,17 @@ $recent_purchases = $pdo->query("SELECT p.*, m.name, m.unit FROM purchases p JOI
             </div>
             <div class="dash-card-desc">Pendapatan lunas - pembelian bahan baku</div>
         </div>
+        <?php endif; ?>
 
         <div class="dash-card yellow">
             <div>
                 <div class="dash-card-title">Pesanan Aktif</div>
                 <div class="dash-card-value"><?=$active_orders?> Pesanan</div>
             </div>
-            <a href="orders.php" class="dash-card-link">Lihat Pesanan Aktif →</a>
+            <a href="orders.php?active=1" class="dash-card-link">Lihat Pesanan Aktif →</a>
         </div>
 
+        <?php if ($is_owner): ?>
         <div class="dash-card cyan">
             <div>
                 <div class="dash-card-title">Total Pembelian Bahan</div>
@@ -228,6 +233,7 @@ $recent_purchases = $pdo->query("SELECT p.*, m.name, m.unit FROM purchases p JOI
             </div>
             <div class="dash-card-desc">Akumulasi Biaya Bahan Baku Toko</div>
         </div>
+        <?php endif; ?>
     </div>
 
     <!-- Panel Pesanan Terbaru (5 Data) -->

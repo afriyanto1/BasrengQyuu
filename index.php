@@ -4,11 +4,14 @@ if (!user()) {
     header("Location: " . app_url("pages/auth/login.php"));
     exit();
 }
+require_login();
 header(
     "Location: " . app_url(
-        user()["role"] === "seller"
-            ? "pages/seller/seller.php"
-            : "pages/buyer/shop.php"
+        is_cashier()
+            ? "pages/cashier/shop.php"
+            : (is_seller()
+                ? "pages/seller/seller.php"
+                : "pages/buyer/shop.php")
     )
 );
 exit();

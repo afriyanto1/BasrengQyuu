@@ -234,7 +234,6 @@ if ($search !== '') {
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
             <div>
                 <h1 style="margin: 0 0 6px 0;">Manajemen Produk</h1>
-                <p class="muted" style="margin: 0;">Tambah, edit, dan kelola katalog produk beserta foto produk.</p>
             </div>
             <a href="products.php?action=create" class="btn btn-primary" style="height: 42px; line-height: 40px; padding: 0 20px; border-radius: 8px; font-weight: 600; text-decoration: none;">+ Tambah Produk</a>
         </div>

@@ -132,7 +132,7 @@ $products = $pdo->query('SELECT * FROM products WHERE active=1 AND stock>0 ORDER
             color: #475569;
         }
         .qty-box input {
-            width: 76px;
+            width: 52px;
             height: 36px;
             padding: 6px 8px;
             border: 1px solid #cbd5e1;
@@ -141,6 +141,46 @@ $products = $pdo->query('SELECT * FROM products WHERE active=1 AND stock>0 ORDER
             text-align: center;
             background: #fff;
             margin-top: 0;
+            -moz-appearance: textfield;
+        }
+        .qty-box input::-webkit-inner-spin-button,
+        .qty-box input::-webkit-outer-spin-button {
+            margin: 0;
+            -webkit-appearance: none;
+        }
+        .qty-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .qty-step {
+            display: inline-grid;
+            place-items: center;
+            width: 34px;
+            height: 36px;
+            padding: 0;
+            border: 1px solid #93c5fd;
+            border-radius: 6px;
+            background: #eff6ff;
+            color: #2563eb;
+            font-size: 19px;
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .qty-step:hover:not(:disabled) {
+            background: #dbeafe;
+        }
+        .qty-step:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+        .cart-icon {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            flex: 0 0 auto;
+            vertical-align: middle;
         }
         .product-actions {
             display: grid;
@@ -181,8 +221,17 @@ $products = $pdo->query('SELECT * FROM products WHERE active=1 AND stock>0 ORDER
             .product-card { padding: 10px; border-radius: 12px; }
             .product-img-wrap { height: 145px; }
             .product-actions { grid-template-columns: 1fr; }
+            .qty-box { padding: 8px; gap: 5px; }
+            .qty-box input { width: 44px; padding: 6px 4px; }
+            .qty-control { gap: 3px; }
+            .qty-step { width: 30px; height: 34px; }
             .product-title { font-size: 14px; }
             .product-price { font-size: 17px; }
+        }
+        @media (max-width: 380px) {
+            .qty-box { align-items: stretch; flex-direction: column; }
+            .qty-control { justify-content: space-between; }
+            .qty-box input { flex: 1; width: auto; }
         }
     </style>
 </head>
@@ -196,8 +245,9 @@ $products = $pdo->query('SELECT * FROM products WHERE active=1 AND stock>0 ORDER
             <h1 style="margin: 0 0 4px; font-size: 26px;">Menu <?= app_language() === "en" ? "Snacks" : "Basreng" ?></h1>
             <p class="muted" style="margin: 0;"><?= app_language() === "en" ? "Welcome," : "Selamat datang," ?> <strong><?=e(user()['name'])?></strong>. <?= app_language() === "en" ? "Choose your favorite snack." : "Pilih camilan favoritmu." ?></p>
         </div>
-        <a href="cart.php" class="btn" style="margin:0; padding:10px 16px; background:#fff; color:#2563eb; border:1px solid #93c5fd; border-radius:10px; text-decoration:none; font-weight:700;">
-            🛒 <?= app_language() === "en" ? "Cart" : "Keranjang" ?> <span style="display:inline-grid; place-items:center; min-width:22px; height:22px; margin-left:5px; padding:0 6px; border-radius:999px; background:#2563eb; color:#fff; font-size:12px;"><?=array_sum($_SESSION["buyer_cart"][$buyerId] ?? [])?></span>
+        <a href="cart.php" class="btn" style="display:inline-flex; align-items:center; gap:6px; margin:0; padding:10px 16px; background:#fff; color:#2563eb; border:1px solid #93c5fd; border-radius:10px; text-decoration:none; font-weight:700;">
+            <img class="cart-icon" src="<?= e(app_url('assets/images/cart-add.svg')) ?>?v=<?= (int) filemtime(app_path('assets/images/cart-add.svg')) ?>" alt="" aria-hidden="true">
+            <?= app_language() === "en" ? "Cart" : "Keranjang" ?> <span style="display:inline-grid; place-items:center; min-width:22px; height:22px; margin-left:5px; padding:0 6px; border-radius:999px; background:#2563eb; color:#fff; font-size:12px;"><?=array_sum($_SESSION["buyer_cart"][$buyerId] ?? [])?></span>
         </a>
     </div>
 
@@ -226,10 +276,17 @@ $products = $pdo->query('SELECT * FROM products WHERE active=1 AND stock>0 ORDER
                         <div class="product-stock"><?= app_language() === "en" ? "Available stock:" : "Stok tersedia:" ?> <strong><?=$p['stock']?></strong></div>
                         <div class="qty-box">
                             <label for="qty-<?=$p['id']?>"><?= app_language() === "en" ? "Quantity" : "Jumlah" ?></label>
-                            <input id="qty-<?=$p['id']?>" type="number" name="qty[<?=$p['id']?>]" min="0" max="<?=$p['stock']?>" value="0" required>
+                            <div class="qty-control">
+                                <button type="button" class="qty-step" data-qty-step="-1" aria-label="<?= app_language() === "en" ? "Decrease quantity" : "Kurangi jumlah" ?>" disabled>-</button>
+                                <input id="qty-<?=$p['id']?>" type="number" name="qty[<?=$p['id']?>]" min="0" max="<?=$p['stock']?>" step="1" value="0" required>
+                                <button type="button" class="qty-step" data-qty-step="1" aria-label="<?= app_language() === "en" ? "Increase quantity" : "Tambah jumlah" ?>">+</button>
+                            </div>
                         </div>
                         <div class="product-actions">
-                            <button type="submit" class="btn-cart" name="add_to_cart" value="<?=$p['id']?>">                            🛒 <?= app_language() === "en" ? "Add to Cart" : "Masukkan" ?></button>
+                            <button type="submit" class="btn-cart" name="add_to_cart" value="<?=$p['id']?>">
+                                <img class="cart-icon" src="<?= e(app_url('assets/images/cart-add.svg')) ?>?v=<?= (int) filemtime(app_path('assets/images/cart-add.svg')) ?>" alt="" aria-hidden="true">
+                                <?= app_language() === "en" ? "Add to Cart" : "Masukkan" ?>
+                            </button>
                             <button type="submit" class="btn-buy" name="buy_now" value="<?=$p['id']?>" formaction="checkout.php"><?= app_language() === "en" ? "Buy Now" : "Beli Sekarang" ?></button>
                         </div>
                     </div>
@@ -244,5 +301,6 @@ $products = $pdo->query('SELECT * FROM products WHERE active=1 AND stock>0 ORDER
         <?php endif;?>
     </form>
 </main>
+<script src="<?= e(app_url('assets/js/shop.js')) ?>" defer></script>
 </body>
 </html>

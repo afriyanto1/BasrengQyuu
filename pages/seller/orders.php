@@ -344,6 +344,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 // Tangkap parameter filter (Kolom 1, Kolom 2, Kolom 3 / Date range)
 $search = trim($_GET['q'] ?? '');
 $status_filter = trim($_GET['status'] ?? '');
+$active_only = ($_GET['active'] ?? '') === '1' && $status_filter === '';
 $payment_status_filter = trim($_GET['payment_status'] ?? '');
 $date_from = trim($_GET['date_from'] ?? '');
 $date_to = trim($_GET['date_to'] ?? '');
@@ -358,6 +359,10 @@ if ($search !== '') {
     $params[] = "%$search%";
     $params[] = "%$search%";
     $params[] = "%$search%";
+}
+
+if ($active_only) {
+    $where[] = "o.status NOT IN ('completed', 'returned')";
 }
 
 if ($status_filter !== '') {
@@ -858,7 +863,6 @@ $products = $pdo->query("SELECT id, name, price, stock FROM products WHERE activ
     <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
         <div>
             <h1 style="margin: 0 0 6px 0;">Pesanan Pembeli</h1>
-            <p class="muted" style="margin: 0;">Perbarui status pembayaran dan status pesanan secara terpisah.</p>
         </div>
         <a href="orders.php?action=create" class="btn" style="height: 42px; padding: 0 20px; white-space: nowrap;">+ Buat Pesanan</a>
     </div>
@@ -866,6 +870,9 @@ $products = $pdo->query("SELECT id, name, price, stock FROM products WHERE activ
     <!-- Menu Filter Berbentuk Kolom -->
     <div class="card-filter">
         <form method="get">
+            <?php if ($active_only): ?>
+                <input type="hidden" name="active" value="1">
+            <?php endif; ?>
             <div class="filter-grid orders-filter-grid">
                 <!-- Kolom 1: Nomor Pesanan / Nama Pelanggan -->
                 <div class="filter-group">
@@ -877,7 +884,7 @@ $products = $pdo->query("SELECT id, name, price, stock FROM products WHERE activ
                 <div class="filter-group">
                     <label>Status Pesanan</label>
                     <select name="status">
-                        <option value="">Semua Status</option>
+                        <option value="" <?= $status_filter === '' ? 'selected' : '' ?>>Semua Status</option>
                         <option value="not_shipped" <?= $status_filter === 'not_shipped' ? 'selected' : '' ?>>Belum Dikirim</option>
                         <option value="shipping" <?= $status_filter === 'shipping' ? 'selected' : '' ?>>Proses Pengiriman</option>
                         <option value="completed" <?= $status_filter === 'completed' ? 'selected' : '' ?>>Selesai</option>

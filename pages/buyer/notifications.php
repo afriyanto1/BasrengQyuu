@@ -129,7 +129,6 @@ $unread_count = count(array_filter(
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px;">
             <div>
                 <h1 style="margin: 0 0 6px; font-size: 24px; color: #0f172a;"><?= e(t("Notifikasi")) ?></h1>
-                <p class="muted" style="margin: 0;"><?= e(app_language() === "en" ? "Updates on your order payment and shipping." : "Pembaruan pembayaran dan pengiriman pesanan Anda.") ?></p>
             </div>
             <?php if ($unread_count > 0): ?>
                 <form method="post">

@@ -1,6 +1,6 @@
 <?php
 require dirname(__DIR__, 2) . "/includes/config.php";
-require_role("seller");
+require_role("owner");
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     check_csrf();
     if (!empty($_FILES["qr"]["name"])) {

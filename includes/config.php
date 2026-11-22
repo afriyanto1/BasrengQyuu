@@ -2,6 +2,17 @@
 declare(strict_types=1);
 session_start();
 
+if (isset($_SESSION["user"])) {
+    $now = time();
+    $last_activity = (int) ($_SESSION["last_activity"] ?? $now);
+    if ($now - $last_activity > 120) {
+        $_SESSION = [];
+        session_destroy();
+    } else {
+        $_SESSION["last_activity"] = $now;
+    }
+}
+
 if (isset($_GET["lang"])) {
     $requested_language = strtolower(trim((string) $_GET["lang"]));
     if (in_array($requested_language, ["id", "en"], true)) {
@@ -48,6 +59,7 @@ function translate_text(string $text, ?string $language = null): string
         "Harga Satuan" => "Unit Price",
         "Jumlah" => "Quantity",
         "Subtotal" => "Subtotal",
+        "Batal" => "Cancel",
         "Keranjang masih kosong" => "Your cart is still empty",
         "Lanjut Belanja" => "Continue Shopping",
         "Mulai Belanja" => "Start Shopping",
@@ -376,17 +388,49 @@ function user(): ?array
 {
     return $_SESSION["user"] ?? null;
 }
+function is_owner(): bool
+{
+    $account = user();
+    return ($account["role"] ?? null) === "owner";
+}
+function is_cashier(): bool
+{
+    $account = user();
+    return ($account["role"] ?? null) === "cashier";
+}
+function is_seller(): bool
+{
+    $account = user();
+    return in_array($account["role"] ?? null, ["owner", "admin"], true);
+}
 function require_login(): void
 {
-    if (!user()) {
+    $account = user();
+    if (!$account) {
         header("Location: " . app_url("pages/auth/login.php"));
         exit();
     }
+
+    global $pdo;
+    $role_stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+    $role_stmt->execute([(int) $account["id"]]);
+    $role = $role_stmt->fetchColumn();
+    if (!is_string($role)) {
+        $_SESSION = [];
+        session_destroy();
+        header("Location: " . app_url("pages/auth/login.php"));
+        exit();
+    }
+
+    $_SESSION["user"]["role"] = $role;
 }
 function require_role(string $role): void
 {
     require_login();
-    if (user()["role"] !== $role) {
+    $has_role = $role === "seller"
+        ? is_seller()
+        : (user()["role"] ?? null) === $role;
+    if (!$has_role) {
         http_response_code(403);
         exit("Akses ditolak.");
     }

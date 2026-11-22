@@ -286,7 +286,6 @@ $rows = $stmt->fetchAll();
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
             <div>
                 <h1 style="margin: 0 0 6px 0;">Master Bahan Baku</h1>
-                <p class="muted" style="margin: 0;">Kelola daftar jenis bahan baku, satuan barang, dan harga per satuan.</p>
             </div>
             <a href="materials.php?action=create" class="btn btn-primary" style="height: 42px; line-height: 40px; padding: 0 20px; border-radius: 8px; font-weight: 600; text-decoration: none;">+ Tambah Bahan Baku</a>
         </div>
