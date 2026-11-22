@@ -95,29 +95,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $method !== 'COD') {
         exit;
     }
     
-    if (isset($_FILES['proof']) && $_FILES['proof']['error'] === UPLOAD_ERR_OK) {
-        $ext = pathinfo($_FILES['proof']['name'], PATHINFO_EXTENSION);
-        $filename = 'proof_' . $id . '_' . time() . '.' . $ext;
-        $upload_dir = app_path("uploads") . DIRECTORY_SEPARATOR;
-        
-        if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0755, true);
-        }
-        
-        if (move_uploaded_file($_FILES['proof']['tmp_name'], $upload_dir . $filename)) {
-            $proof_path = "uploads/" . $filename;
-            
-            $update = $pdo->prepare("UPDATE orders SET payment_proof = ?, payment_status = 'awaiting_seller' WHERE id = ?");
-            $update->execute([$proof_path, $id]);
-            
-            flash('Bukti pembayaran berhasil diunggah! Silakan klik tombol konfirmasi ke WhatsApp Admin.', "success");
-            header("Location: payment.php?id=" . $id);
-            exit;
-        } else {
-            flash('Gagal mengunggah file bukti pembayaran.');
-        }
+    $proofUpload = $_FILES['proof'] ?? null;
+    $proofError = null;
+    $proofTmpName = is_array($proofUpload) ? ($proofUpload['tmp_name'] ?? null) : null;
+    if (
+        !is_array($proofUpload) ||
+        ($proofUpload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK ||
+        !is_string($proofTmpName) ||
+        !is_uploaded_file($proofTmpName)
+    ) {
+        $proofError = 'Pilih file gambar bukti pembayaran yang valid (PNG, JPG, atau WEBP, maksimal 3 MB).';
     } else {
-        flash('Pilih file gambar bukti pembayaran yang valid.');
+        $proofSize = filesize($proofTmpName);
+        if ($proofSize === false || $proofSize < 1 || $proofSize > 3 * 1024 * 1024) {
+            $proofError = 'Ukuran file bukti pembayaran maksimal 3 MB.';
+        } else {
+            $allowedProofTypes = [
+                'image/jpeg' => 'jpg',
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+            ];
+            $fileInfo = new finfo(FILEINFO_MIME_TYPE);
+            $proofMimeType = $fileInfo->file($proofTmpName);
+            if (!is_string($proofMimeType) || !isset($allowedProofTypes[$proofMimeType])) {
+                $proofError = 'Format file bukti pembayaran harus PNG, JPG, atau WEBP.';
+            } else {
+                $proofImageInfo = getimagesize($proofTmpName);
+                if ($proofImageInfo === false || ($proofImageInfo['mime'] ?? null) !== $proofMimeType) {
+                    $proofError = 'File yang diunggah bukan gambar yang valid.';
+                }
+            }
+        }
+    }
+
+    if ($proofError === null) {
+        $uploadDir = app_path('uploads');
+        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+            $proofError = 'Folder upload tidak tersedia. Silakan coba lagi.';
+        } elseif (!is_writable($uploadDir)) {
+            $proofError = 'Folder upload tidak dapat ditulisi. Silakan hubungi Owner/Admin.';
+        } else {
+            $filename = 'proof_' . $id . '_' . bin2hex(random_bytes(8)) . '.' . $allowedProofTypes[$proofMimeType];
+            $uploadPath = $uploadDir . DIRECTORY_SEPARATOR . $filename;
+            if (!move_uploaded_file($proofTmpName, $uploadPath)) {
+                $proofError = 'Gagal mengunggah file bukti pembayaran.';
+            } else {
+                $proofPath = 'uploads/' . $filename;
+                $update = $pdo->prepare(
+                    "UPDATE orders SET payment_proof = ?, payment_status = 'awaiting_seller' WHERE id = ?"
+                );
+                $update->execute([$proofPath, $id]);
+
+                flash('Bukti pembayaran berhasil diunggah! Silakan klik tombol konfirmasi ke WhatsApp Admin.', 'success');
+                header('Location: payment.php?id=' . $id);
+                exit;
+            }
+        }
+    }
+
+    if ($proofError !== null) {
+        flash($proofError);
     }
 }
 ?><!doctype html>
