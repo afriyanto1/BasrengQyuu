@@ -16,8 +16,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     check_csrf();
     $name = trim($_POST["name"] ?? "");
     $desc = trim($_POST["description"] ?? "");
-    $nameEn = trim($_POST["name_en"] ?? "");
-    $descEn = trim($_POST["description_en"] ?? "");
     $price = (float) ($_POST["price"] ?? 0);
     $stock = (int) ($_POST["stock"] ?? 0);
     $imagePath = $p["image"]; // Pertahankan gambar lama jika tidak diunggah baru
@@ -65,8 +63,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if ($name !== "" && $price >= 0 && $stock >= 0) {
         $pdo->prepare(
-            "UPDATE products SET name=?, name_en=?, description=?, description_en=?, price=?, stock=?, image=? WHERE id=?"
-        )->execute([$name, $nameEn ?: null, $desc, $descEn ?: null, $price, $stock, $imagePath, $id]);
+            "UPDATE products SET name=?, description=?, price=?, stock=?, image=? WHERE id=?"
+        )->execute([
+            $name,
+            $desc,
+            $price,
+            $stock,
+            $imagePath,
+            $id,
+        ]);
         flash("Produk berhasil diperbarui.", "success");
         header("Location: products.php");
         exit();
@@ -96,9 +101,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             <label>Nama Produk</label>
             <input name="name" value="<?= e($p["name"]) ?>" required>
             
-            <label>Nama Produk (English)</label>
-            <input name="name_en" value="<?= e($p["name_en"] ?? "") ?>">
-            
             <label>Harga Jual (Rp)</label>
             <input type="number" name="price" min="0" step="100" value="<?= $p[
                 "price"
@@ -111,9 +113,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             
             <label>Deskripsi</label>
             <input name="description" value="<?= e($p["description"]) ?>">
-            
-            <label>Deskripsi (English)</label>
-            <input name="description_en" value="<?= e($p["description_en"] ?? "") ?>">
             
             <label>Foto Saat Ini</label>
             <div style="margin: 8px 0;">

@@ -13,8 +13,6 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     } else {
         $name = trim($_POST['name'] ?? '');
         $desc = trim($_POST['description'] ?? '');
-        $nameEn = trim($_POST['name_en'] ?? '');
-        $descEn = trim($_POST['description_en'] ?? '');
         $price = (float)($_POST['price'] ?? 0);
         $stock = (int)($_POST['stock'] ?? 0);
         $imagePath = null;
@@ -34,8 +32,14 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         }
 
         if($name !== '' && $price >= 0 && $stock >= 0){
-            $stmt = $pdo->prepare('INSERT INTO products(name, name_en, description, description_en, price, stock, image) VALUES(?, ?, ?, ?, ?, ?, ?)');
-            $stmt->execute([$name, $nameEn ?: null, $desc, $descEn ?: null, $price, $stock, $imagePath]);
+            $stmt = $pdo->prepare('INSERT INTO products(name, description, price, stock, image) VALUES(?, ?, ?, ?, ?)');
+            $stmt->execute([
+                $name,
+                $desc,
+                $price,
+                $stock,
+                $imagePath,
+            ]);
             flash('Produk baru berhasil ditambahkan.', "success");
         } else {
             flash('Nama produk dan harga/stok wajib diisi dengan benar.', 'danger');
@@ -199,10 +203,6 @@ if ($search !== '') {
                         <input type="text" name="name" placeholder="Contoh: Basreng Original 1Kg" required>
                     </div>
                     <div class="form-group">
-                        <label>Nama Produk (English)</label>
-                        <input type="text" name="name_en" placeholder="Example: Original Basreng 1Kg">
-                    </div>
-                    <div class="form-group">
                         <label>Harga Jual (Rp) *</label>
                         <input type="number" name="price" min="0" step="100" placeholder="50000" required>
                     </div>
@@ -219,10 +219,6 @@ if ($search !== '') {
                     <div class="form-group full">
                         <label>Deskripsi</label>
                         <textarea name="description" rows="4" placeholder="Keterangan rasa, ukuran, atau detail produk"></textarea>
-                    </div>
-                    <div class="form-group full">
-                        <label>Deskripsi (English)</label>
-                        <textarea name="description_en" rows="4" placeholder="Taste, size, or product details in English"></textarea>
                     </div>
                 </div>
 

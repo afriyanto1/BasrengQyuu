@@ -218,8 +218,8 @@ $products = $pdo->query('SELECT * FROM products WHERE active=1 AND stock>0 ORDER
                                 <span style="font-size: 36px;">🌶️</span>
                             <?php endif;?>
                         </div>
-                        <h2 class="product-title"><?=e(app_language() === "en" && !empty($p["name_en"]) ? $p["name_en"] : $p["name"])?></h2>
-                        <p class="product-desc"><?=e(app_language() === "en" && !empty($p["description_en"]) ? $p["description_en"] : ($p["description"] ?: 'Basreng renyah dan gurih pilihan terbaik.'))?></p>
+                        <h2 class="product-title"><?= e($p["name"]) ?></h2>
+                        <p class="product-desc"><?= e($p["description"] ?: 'Basreng renyah dan gurih pilihan terbaik.') ?></p>
                     </div>
                     <div>
                         <div class="product-price"><?=rupiah($p['price'])?></div>

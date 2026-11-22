@@ -461,9 +461,9 @@ $orderTotal = $productTotal + $shippingFee;
                         <?php endif; ?>
                     </div>
                     <div>
-                        <span class="checkout-product-name"><?= e(app_language() === "en" && !empty($item["product"]["name_en"]) ? $item["product"]["name_en"] : $item["product"]["name"]) ?></span>
+                        <span class="checkout-product-name"><?= e($item["product"]["name"]) ?></span>
                         <?php if (!empty($item["product"]["description"])): ?>
-                            <span class="checkout-product-description"><?= e(app_language() === "en" && !empty($item["product"]["description_en"]) ? $item["product"]["description_en"] : $item["product"]["description"]) ?></span>
+                            <span class="checkout-product-description"><?= e($item["product"]["description"]) ?></span>
                         <?php endif; ?>
                     </div>
                 </div>
